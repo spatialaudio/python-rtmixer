@@ -19,7 +19,7 @@ setup(
     author='Matthias Geier',
     author_email='Matthias.Geier@gmail.com',
     description='Reliable low-latency audio playback and recording',
-    #long_description=open('README.rst').read(),
+    long_description=open('README.rst').read(),
     license='MIT',
     keywords='sound audio PortAudio realtime low-latency'.split(),
     #url='http://python-rtmixer.readthedocs.io/',

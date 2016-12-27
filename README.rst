@@ -4,9 +4,9 @@ Realtime Audio Mixer for Python
 **WARNING:** This is work in progress!
 
 Goal: Reliable low-latency audio playback and recording with Python, using
-[PortAudio][] via the [sounddevice][] module.
+PortAudio_ via the sounddevice_ module.
 
-The audio callback is implemented in C (and compiled with the help of [CFFI][])
+The audio callback is implemented in C (and compiled with the help of CFFI_)
 and doesn't invoke the Python interpreter, therefore avoiding waiting for things
 like garbage collection and the GIL.
 
@@ -41,7 +41,7 @@ Planned features:
 
 Out of scope:
 
-* reading from/writing to files (use e.g. the [soundfile][] module)
+* reading from/writing to files (use e.g. the soundfile_ module)
 
 * realtime signal processing (inside the audio callback)
 
@@ -66,32 +66,34 @@ Somewhat similar projects:
 * https://github.com/nvahalik/PyAudioMixer
 * http://www.pygame.org/docs/ref/mixer.html
 
-[PortAudio]: http://portaudio.com/
-[sounddevice]: http://python-sounddevice.readthedocs.io/
-[CFFI]: http://cffi.readthedocs.io/
-[soundfile]: http://pysoundfile.readthedocs.io/
+.. _PortAudio: http://portaudio.com/
+.. _sounddevice: http://python-sounddevice.readthedocs.io/
+.. _CFFI: http://cffi.readthedocs.io/
+.. _soundfile: http://pysoundfile.readthedocs.io/
 
 Installation
 ------------
 
+::
+
     python3 setup.py develop --user
 
-or
+or ::
 
     python3 -m pip install -e . --user
 
 PortAudio doesn't have to be installed for the compilation of the extension
-module, but `portaudio.h` must be available.
+module, but ``portaudio.h`` must be available.
 
 If you just want to compile the C extension module (without installing the
-`rtmixer` module), you can run this:
+``rtmixer`` module), you can run this::
 
     python3 rtmixer_build.py
 
 Usage
 -----
 
-```python
-import rtmixer
-mixer = rtmixer.RtMixer()
-```
+.. code:: python
+
+    import rtmixer
+    mixer = rtmixer.RtMixer()
