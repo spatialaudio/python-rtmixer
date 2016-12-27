@@ -1,3 +1,6 @@
+"""Reliable low-latency audio playback and recording."""
+__version__ = '0.0.0'
+
 import sounddevice as _sd
 from _rtmixer import ffi as _ffi, lib as _lib
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Executing this file creates the _rtmixer extension module (see rtmixer.py).
+# Executing this script creates the _rtmixer extension module (see rtmixer.py).
 
 from cffi import FFI
 

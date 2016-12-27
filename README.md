@@ -71,17 +71,20 @@ Somewhat similar projects:
 [CFFI]: http://cffi.readthedocs.io/
 [soundfile]: http://pysoundfile.readthedocs.io/
 
-Dependencies
+Installation
 ------------
 
-CFFI >= 1.4.0
+    python3 setup.py develop --user
 
-sounddevice > 0.3.6
+or
 
-Compiling
----------
+    python3 -m pip install -e . --user
 
-PortAudio doesn't have to be installed, but `portaudio.h` must be available.
+PortAudio doesn't have to be installed for the compilation of the extension
+module, but `portaudio.h` must be available.
+
+If you just want to compile the C extension module (without installing the
+`rtmixer` module), you can run this:
 
     python3 rtmixer_build.py
 
