@@ -82,9 +82,6 @@ or ::
 
     python3 -m pip install -e . --user
 
-PortAudio doesn't have to be installed for the compilation of the extension
-module, but ``portaudio.h`` must be available.
-
 If you just want to compile the C extension module (without installing the
 ``rtmixer`` module), you can run this::
 
