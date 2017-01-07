@@ -11,7 +11,7 @@ from _rtmixer import ffi as _ffi, lib as _lib
 class RtMixer(_sd._StreamBase):
     """PortAudio stream with realtime mixing callback."""
 
-    def __init__(self, channels, blocksize=1024, **kwargs):
+    def __init__(self, channels, **kwargs):
         """Create a realtime mixer object.
 
         Takes the same keyword arguments as `sounddevice.Stream`, except
@@ -26,33 +26,35 @@ class RtMixer(_sd._StreamBase):
         callback = _ffi.addressof(_lib, 'callback')
         input_channels, output_channels = _sd._split(channels)
 
-        # TODO: allow blocksize=0
-
         # TODO: parameter for ring buffer size
-        rb_size = 512
-
-        self._rb = RingBuffer(
-            _ffi.sizeof('float') * output_channels * blocksize, rb_size)
-
-        userdata = _ffi.new('state_t*', dict(
+        self._action_q = RingBuffer(_ffi.sizeof('struct action*'), 128)
+        self._userdata = _ffi.new('struct state*', dict(
             input_channels=input_channels,
             output_channels=output_channels,
-            rb_ptr=self._rb._ptr,
+            action_q=self._action_q._ptr,
         ))
-        self._userdata = userdata  # Keep alive
         super(RtMixer, self).__init__(
-            kind=None, wrap_callback=None,
-            blocksize=blocksize, channels=channels,
-            dtype='float32', callback=callback, userdata=userdata, **kwargs)
+            kind=None, wrap_callback=None, channels=channels,
+            dtype='float32', callback=callback, userdata=self._userdata,
+            **kwargs)
 
-    def enqueue_numpy(self, array):
-        # TODO: check shape
-        while not self._rb.write_available:
-            _sd.sleep(250)
-        ret = self._rb.write(array)
-        if ret != 1:
-            print("Error writing to ring buffer")
+        self._actions = []
 
+    def play_ringbuffer(self, ringbuffer):
+        # TODO: drain result_q?
+        # TODO: get rid of indexing:
+        if ringbuffer.elementsize != self.samplesize[1] * self.channels[1]:
+            raise ValueError('Incompatible elementsize')
+        action = _ffi.new('struct action*', dict(
+            ringbuffer=ringbuffer._ptr,
+        ))
+        if not self._action_q.write_available:
+            raise RuntimeError('Action queue is full!')
+        ret = self._action_q.write(_ffi.new('struct action**', action))
+        assert ret == 1
+        self._actions.append(action)  # TODO: Better way to keep alive?
+        # TODO: block until playback has finished (optional)?
+        # TODO: return something that allows stopping playback?
 
 class RingBuffer(object):
     """Wrapper for PortAudio's ring buffer.
@@ -123,7 +125,7 @@ class RingBuffer(object):
         except TypeError:
             pass  # input is not a buffer
         if size < 0:
-            size, rest = divmod(len(data), self._ptr.elementSizeBytes)
+            size, rest = divmod(_ffi.sizeof(data), self._ptr.elementSizeBytes)
             if rest:
                 raise ValueError('data size must be multiple of elementsize')
         return _lib.PaUtil_WriteRingBuffer(self._ptr, data, size)
@@ -155,3 +157,8 @@ class RingBuffer(object):
             if rest:
                 raise ValueError('data size must be multiple of elementsize')
         return _lib.PaUtil_ReadRingBuffer(self._ptr, data, size)
+
+    @property
+    def elementsize(self):
+        """Element size in bytes."""
+        return self._ptr.elementSizeBytes

@@ -8,29 +8,58 @@ int callback(const void* input, void* output, unsigned long frameCount
   , const PaStreamCallbackTimeInfo* timeInfo, PaStreamCallbackFlags statusFlags
   , void* userData)
 {
-  // TODO: check if main thread is still running?
+  float* outdata = output;
+  struct state* state = userData;
 
-  state_t* state = userData;
+  memset(output, 0, sizeof(float) * state->output_channels * frameCount);
 
-  if (statusFlags & paInputUnderflow) { printf("Input underflow!\n"); }
-  if (statusFlags & paInputOverflow)  { printf("Input overflow!\n"); }
+  if (statusFlags & paInputUnderflow)  { printf("Input underflow!\n"); }
+  if (statusFlags & paInputOverflow)   { printf("Input overflow!\n"); }
   if (statusFlags & paOutputUnderflow) { printf("Output underflow!\n"); }
   if (statusFlags & paOutputOverflow)  { printf("Output overflow!\n"); }
 
-  PaUtilRingBuffer* const rb = state->rb_ptr;
+  // TODO: store information about overflows/underflows
 
-  if (PaUtil_GetRingBufferReadAvailable(rb))
+  // TODO: check if main thread is still running?
+
+  struct action* action = NULL;
+  while (PaUtil_ReadRingBuffer(state->action_q, &action, 1))
   {
-    ring_buffer_size_t elements_read = PaUtil_ReadRingBuffer(rb, output, 1);
-    if (elements_read != 1)
-    {
-      printf("Error reading ring buffer!\n");
-      return paAbort;
-    }
+    // TODO: check action type, remove things if necessary
+    // TODO: append new actions to the end of the list?
+    action->next = state->actions;
+    state->actions = action;
   }
-  else
+
+  action = state->actions;
+  while (action)
   {
-    memset(output, 0, sizeof(float) * state->output_channels * frameCount);
+    // TODO: check action type
+
+    float* block1 = NULL;
+    float* block2 = NULL;
+    ring_buffer_size_t size1 = 0;
+    ring_buffer_size_t size2 = 0;
+
+    ring_buffer_size_t read_elements = PaUtil_GetRingBufferReadRegions(
+        action->ringbuffer, frameCount, (void**)&block1, &size1,
+                                        (void**)&block2, &size2);
+
+    PaUtil_AdvanceRingBufferReadIndex(action->ringbuffer, read_elements);
+
+    float* target = outdata;
+    while (size1--)
+    {
+      *target++ += *block1++;
+    }
+    while (size2--)
+    {
+      *target++ += *block2++;
+    }
+
+    // TODO: if ringbuffer is empty, stop playback
+
+    action = action->next;
   }
 
   // Note: input data is ignored for now
