@@ -13,11 +13,21 @@
 //
 // if queue is empty/full, stop playback/recording
 
+enum actiontype
+{
+  PLAY_BUFFER,
+  PLAY_RINGBUFFER,
+  RECORD_BUFFER,
+  RECORD_RINGBUFFER,
+};
 
 struct action
 {
-  // TODO: action type
+  enum actiontype actiontype;
   PaUtilRingBuffer* ringbuffer;
+  float* buffer;
+  unsigned long total_frames;
+  unsigned long done_frames;
   // TODO: channel mapping (pointer to list of channels + length)
   // TODO: something to store the result of the action?
   struct action* next;

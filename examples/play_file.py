@@ -14,24 +14,26 @@ reading_blocksize = 1024
 reading_qsize = 16  # Number of blocks, has to be power of two
 
 with sf.SoundFile(filename) as f:
-    with rtmixer.RtMixer(device=0, channels=f.channels,
+    with rtmixer.RtMixer(channels=f.channels,
                          blocksize=playback_blocksize,
                          samplerate=f.samplerate, latency=latency) as m:
         # TODO: indexing not necessary for output-only mixer object:
         elementsize = f.channels * m.samplesize[1]
         q = rtmixer.RingBuffer(elementsize, reading_blocksize * reading_qsize)
-        # TODO: pre-fill ringbuffer
+        # Pre-fill ringbuffer:
+        _, buf, _ = q.get_write_buffers(reading_blocksize * reading_qsize)
+        written = f.buffer_read_into(buf, ctype='float')
+        q.advance_write_index(written)
         m.play_ringbuffer(q)  # TODO: return value?
         while True:
-            # TODO: use buffer_read_into() instead, to directly write into rb
-            buffer = f.buffer_read(reading_blocksize, ctype='float')
-            if not buffer:
+            while q.write_available < reading_blocksize:
+                sd.sleep(int(1000 * reading_blocksize / f.samplerate))
+            size, buf1, buf2 = q.get_write_buffers(reading_blocksize)
+            assert not buf2
+            written = f.buffer_read_into(buf1, ctype='float')
+            q.advance_write_index(written)
+            if written < size:
                 break
-            while q.write_available < reading_blocksize * elementsize:
-                sd.sleep(int(1000 * reading_blocksize * elementsize /
-                             f.samplerate))
-            ret = q.write(buffer)
-            assert ret == len(buffer) / elementsize
         input()
         # TODO: wait until playback is finished
         # TODO: check for xruns

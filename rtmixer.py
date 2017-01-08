@@ -40,12 +40,34 @@ class RtMixer(_sd._StreamBase):
 
         self._actions = []
 
+    def play_buffer(self, buffer):
+        """Send a buffer (or CData) to the callback to be played back."""
+        # TODO: drain result_q?
+        # TODO: pass number of channels? or channel mapping?
+        try:
+            buffer = _ffi.from_buffer(buffer)
+        except TypeError:
+            pass  # input is not a buffer
+        action = _ffi.new('struct action*', dict(
+            actiontype=_lib.PLAY_BUFFER,
+            buffer=_ffi.cast('float*', buffer),
+            # TODO: take channels into account!
+            total_frames=_ffi.sizeof(buffer) // self.samplesize[1],
+        ))
+        if not self._action_q.write_available:
+            raise RuntimeError('Action queue is full!')
+        ret = self._action_q.write(_ffi.new('struct action**', action))
+        assert ret == 1
+        self._actions.append(action)  # TODO: Better way to keep alive?
+
     def play_ringbuffer(self, ringbuffer):
+        """Send a ring buffer to the callback to be played back."""
         # TODO: drain result_q?
         # TODO: get rid of indexing:
         if ringbuffer.elementsize != self.samplesize[1] * self.channels[1]:
             raise ValueError('Incompatible elementsize')
         action = _ffi.new('struct action*', dict(
+            actiontype=_lib.PLAY_RINGBUFFER,
             ringbuffer=ringbuffer._ptr,
         ))
         if not self._action_q.write_available:
@@ -55,6 +77,7 @@ class RtMixer(_sd._StreamBase):
         self._actions.append(action)  # TODO: Better way to keep alive?
         # TODO: block until playback has finished (optional)?
         # TODO: return something that allows stopping playback?
+
 
 class RingBuffer(object):
     """Wrapper for PortAudio's ring buffer.
@@ -120,8 +143,6 @@ class RingBuffer(object):
         """
         try:
             data = _ffi.from_buffer(data)
-        except AttributeError:
-            pass  # from_buffer() not supported
         except TypeError:
             pass  # input is not a buffer
         if size < 0:
@@ -148,8 +169,6 @@ class RingBuffer(object):
         """
         try:
             data = _ffi.from_buffer(data)
-        except AttributeError:
-            pass  # from_buffer() not supported
         except TypeError:
             pass  # input is not a buffer
         if size < 0:
@@ -157,6 +176,93 @@ class RingBuffer(object):
             if rest:
                 raise ValueError('data size must be multiple of elementsize')
         return _lib.PaUtil_ReadRingBuffer(self._ptr, data, size)
+
+    def get_write_buffers(self, size):
+        """Get buffer(s) to which we can write data.
+
+        Parameters
+        ----------
+        size : int
+            The number of elements desired.
+
+        Returns
+        -------
+        int
+            The room available to be written or the given *size*,
+            whichever is smaller.
+        buffer
+            The first buffer.
+        buffer
+            The second buffer.
+
+        """
+        ptr1 = _ffi.new('void**')
+        ptr2 = _ffi.new('void**')
+        size1 = _ffi.new('ring_buffer_size_t*')
+        size2 = _ffi.new('ring_buffer_size_t*')
+        return (_lib.PaUtil_GetRingBufferWriteRegions(
+                    self._ptr, size, ptr1, size1, ptr2, size2),
+                _ffi.buffer(ptr1[0], size1[0] * self.elementsize),
+                _ffi.buffer(ptr2[0], size2[0] * self.elementsize))
+
+    def advance_write_index(self, size):
+        """Advance the write index to the next location to be written.
+
+        Parameters
+        ----------
+        size : int
+            The number of elements to advance.
+
+        Returns
+        -------
+        int
+            The new position.
+
+        """
+        return _lib.PaUtil_AdvanceRingBufferWriteIndex(self._ptr, size)
+
+    def get_read_buffers(self, size):
+        """Get buffer(s) from which we can read data.
+
+        Parameters
+        ----------
+        size : int
+            The number of elements desired.
+
+        Returns
+        -------
+        int
+            The number of elements available for reading.
+        buffer
+            The first buffer.
+        buffer
+            The second buffer.
+
+        """
+        ptr1 = _ffi.new('void**')
+        ptr2 = _ffi.new('void**')
+        size1 = _ffi.new('ring_buffer_size_t*')
+        size2 = _ffi.new('ring_buffer_size_t*')
+        return (_lib.PaUtil_GetRingBufferReadRegions(
+                    self._ptr, size, ptr1, size1, ptr2, size2),
+                _ffi.buffer(ptr1[0], size1[0] * self.elementsize),
+                _ffi.buffer(ptr2[0], size2[0] * self.elementsize))
+
+    def advance_read_index(self, size):
+        """Advance the read index to the next location to be read.
+
+        Parameters
+        ----------
+        size : int
+            The number of elements to advance.
+
+        Returns
+        -------
+        int
+            The new position.
+
+        """
+        return _lib.PaUtil_AdvanceRingBufferReadIndex(self._ptr, size)
 
     @property
     def elementsize(self):
