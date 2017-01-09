@@ -42,8 +42,8 @@ int callback(const void* input, void* output, unsigned long frameCount
     ring_buffer_size_t size2 = 0;
 
     ring_buffer_size_t read_elements = PaUtil_GetRingBufferReadRegions(
-        action->ringbuffer, frameCount, (void**)&block1, &size1,
-                                        (void**)&block2, &size2);
+        action->ringbuffer, (ring_buffer_size_t)frameCount,
+       	(void**)&block1, &size1, (void**)&block2, &size2);
 
     PaUtil_AdvanceRingBufferReadIndex(action->ringbuffer, read_elements);
 
