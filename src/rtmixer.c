@@ -50,8 +50,8 @@ int callback(const void* input, void* output, unsigned long frameCount
           // TODO: get start time, increment target, decrement frames
           // TODO: store timestamp of actual start of playback
         }
-        float* source =
-          action->buffer + action->done_frames * state->output_channels;
+        float* source = action->buffer;
+        source += action->done_frames * state->output_channels;
         unsigned long size = frames * state->output_channels;
         while (size--)
         {

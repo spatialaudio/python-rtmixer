@@ -47,7 +47,7 @@ class Mixer(_sd._StreamBase):
         _, samplesize = _sd._split(self.samplesize)
         action = _ffi.new('struct action*', dict(
             actiontype=_lib.PLAY_BUFFER,
-            buffer=_ffi.cast('float*', buffer),
+            buffer=buffer,
             # TODO: take channels into account!
             total_frames=_ffi.sizeof(buffer) // samplesize,
         ))
