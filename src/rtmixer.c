@@ -38,26 +38,29 @@ int callback(const void* input, void* output, unsigned long frameCount
     {
       case PLAY_BUFFER:
       {
-        float* target = output;
         unsigned long frames = action->total_frames - action->done_frames;
         if (frameCount < frames)
         {
           frames = frameCount;
         }
 
+        float* target = output;
         if (action->done_frames == 0)
         {
           // TODO: get start time, increment target, decrement frames
           // TODO: store timestamp of actual start of playback
         }
         float* source = action->buffer;
-        source += action->done_frames * state->output_channels;
-        unsigned long size = frames * state->output_channels;
-        while (size--)
-        {
-          *target++ += *source++;
-        }
+        source += action->done_frames * action->channels;
         action->done_frames += frames;
+        while (frames--)
+        {
+          for (int c = 0; c < action->channels; c++)
+          {
+            target[action->mapping[c] - 1] += *source++;
+          }
+          target += state->output_channels;
+        }
         if (action->done_frames == action->total_frames)
         {
           // TODO: stop playback, discard action struct
@@ -79,22 +82,26 @@ int callback(const void* input, void* output, unsigned long frameCount
             action->ringbuffer, (ring_buffer_size_t)frameCount,
             (void**)&block1, &size1, (void**)&block2, &size2);
 
-        PaUtil_AdvanceRingBufferReadIndex(action->ringbuffer, read_elements);
-
-        // Sizes are in frames, we need samples:
-        size1 *= state->output_channels;
-        size2 *= state->output_channels;
-
         float* target = output;
         while (size1--)
         {
-          *target++ += *block1++;
+          for (int c = 0; c < action->channels; c++)
+          {
+            target[action->mapping[c] - 1] += *block1++;
+          }
+          target += state->output_channels;
         }
         while (size2--)
         {
-          *target++ += *block2++;
+          for (int c = 0; c < action->channels; c++)
+          {
+            target[action->mapping[c] - 1] += *block2++;
+          }
+          target += state->output_channels;
         }
         action->done_frames += read_elements;
+        PaUtil_AdvanceRingBufferReadIndex(action->ringbuffer, read_elements);
+
         // TODO: if ringbuffer is empty, stop playback, discard action struct
         break;
       }

@@ -36,37 +36,50 @@ class Mixer(_sd._StreamBase):
 
         self._actions = []
 
-    def play_buffer(self, buffer):
-        """Send a buffer (or CData) to the callback to be played back."""
+    def play_buffer(self, buffer, channels):
+        """Send a buffer to the callback to be played back.
+
+        After that, the *buffer* must not be written to anymore.
+
+        """
         # TODO: drain result_q?
-        # TODO: pass number of channels? or channel mapping?
-        try:
-            buffer = _ffi.from_buffer(buffer)
-        except TypeError:
-            pass  # input is not a buffer
+        channels, mapping = self._check_channels(channels, 'output')
+        buffer = _ffi.from_buffer(buffer)
         _, samplesize = _sd._split(self.samplesize)
         action = _ffi.new('struct action*', dict(
             actiontype=_lib.PLAY_BUFFER,
-            buffer=buffer,
-            # TODO: take channels into account!
-            total_frames=_ffi.sizeof(buffer) // samplesize,
+            # Cast to float* to allow playing bytes objects:
+            buffer=_ffi.cast('float*', buffer),
+            total_frames=len(buffer) // channels // samplesize,
+            channels=channels,
+            mapping=mapping,
         ))
+        # TODO: avoid code duplication with play_ringbuffer():
         if not self._action_q.write_available:
             raise RuntimeError('Action queue is full!')
         ret = self._action_q.write(_ffi.new('struct action**', action))
         assert ret == 1
         self._actions.append(action)  # TODO: Better way to keep alive?
 
-    def play_ringbuffer(self, ringbuffer):
-        """Send a ring buffer to the callback to be played back."""
+    def play_ringbuffer(self, ringbuffer, channels=None):
+        """Send a ring buffer to the callback to be played back.
+
+        By default, the number of channels is obtained from the ring
+        buffer's *elementsize*.
+
+        """
         # TODO: drain result_q?
         _, samplesize = _sd._split(self.samplesize)
-        _, channels = _sd._split(self.channels)
+        if channels is None:
+            channels = ringbuffer.elementsize // samplesize
+        channels, mapping = self._check_channels(channels, 'output')
         if ringbuffer.elementsize != samplesize * channels:
             raise ValueError('Incompatible elementsize')
         action = _ffi.new('struct action*', dict(
             actiontype=_lib.PLAY_RINGBUFFER,
             ringbuffer=ringbuffer._ptr,
+            channels=channels,
+            mapping=mapping,
         ))
         if not self._action_q.write_available:
             raise RuntimeError('Action queue is full!')
@@ -75,6 +88,20 @@ class Mixer(_sd._StreamBase):
         self._actions.append(action)  # TODO: Better way to keep alive?
         # TODO: block until playback has finished (optional)?
         # TODO: return something that allows stopping playback?
+
+    def _check_channels(self, channels, kind):
+        """Check if number of channels or mapping was given."""
+        assert kind in ('input', 'output')
+        try:
+            channels, mapping = len(channels), channels
+        except TypeError:
+            mapping = tuple(range(1, channels + 1))
+        max_channels = _sd._split(self.channels)[kind == 'output']
+        if max(mapping) > max_channels:
+            raise ValueError('Channel number too large')
+        if min(mapping) < 1:
+            raise ValueError('Channel numbers start with 1')
+        return channels, mapping
 
 
 class Recorder(_sd._StreamBase):

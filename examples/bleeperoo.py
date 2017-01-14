@@ -7,6 +7,7 @@ import sounddevice as sd
 
 seed = 99
 
+device = None
 blocksize = 0
 latency = 'low'
 samplerate = 44100
@@ -23,7 +24,7 @@ amplitude_min = 0.05
 amplitude_max = 0.15
 sleep_min = 0
 sleep_max = 0.1
-channels = 1  # TODO: multichannel
+channels = None
 sleeptime = 5
 
 if duration_min < max(attack, release):
@@ -35,6 +36,11 @@ fade_out = np.linspace(1, 0, num=int(samplerate * release))
 r = np.random.RandomState(seed)
 
 bleeplist = []
+
+if channels is None:
+    channels = sd.default.channels['output']
+    if channels is None:
+        channels = sd.query_devices(device, 'output')['max_output_channels']
 
 for _ in range(bleeps):
     duration = r.uniform(duration_min, duration_max)
@@ -52,10 +58,10 @@ for _ in range(bleeps):
     assert bleep.flags.c_contiguous
     bleeplist.append(bleep)
 
-with rtmixer.Mixer(channels=channels, blocksize=blocksize,
+with rtmixer.Mixer(device=device, channels=channels, blocksize=blocksize,
                    samplerate=samplerate, latency=latency) as m:
     for bleep in bleeplist:
-        m.play_buffer(bleep)
+        m.play_buffer(bleep, channels=[r.randint(channels) + 1])
         sleeptime = r.uniform(sleep_min, sleep_max)
         sd.sleep(int(1000 * sleeptime))
     # TODO: wait until the last bleep has finished

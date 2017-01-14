@@ -31,8 +31,9 @@ struct action
   };
   const unsigned long total_frames;
   unsigned long done_frames;
-  // TODO: channel mapping (pointer to list of channels + length)
   // TODO: something to store the result of the action?
+  const int channels;
+  const int mapping[];  // "flexible array member", size given by "channels"
 };
 
 struct state
