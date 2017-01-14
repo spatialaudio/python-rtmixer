@@ -1,6 +1,4 @@
-#!/usr/bin/env python3
-
-# Executing this script creates the _rtmixer extension module (see rtmixer.py).
+# This is used to create the _rtmixer extension module (see setup.py).
 
 from cffi import FFI
 import platform
@@ -42,11 +40,11 @@ ring_buffer_size_t PaUtil_AdvanceRingBufferWriteIndex(PaUtilRingBuffer* rbuf, ri
 ring_buffer_size_t PaUtil_GetRingBufferReadRegions(PaUtilRingBuffer* rbuf, ring_buffer_size_t elementCount, void** dataPtr1, ring_buffer_size_t* sizePtr1, void** dataPtr2, ring_buffer_size_t* sizePtr2);
 ring_buffer_size_t PaUtil_AdvanceRingBufferReadIndex(PaUtilRingBuffer* rbuf, ring_buffer_size_t elementCount);
 """ % locals())
-ffibuilder.cdef(open('rtmixer.h').read())
+ffibuilder.cdef(open('src/rtmixer.h').read())
 ffibuilder.set_source(
     '_rtmixer',
-    open('rtmixer.c').read(),
-    include_dirs=['.', 'portaudio/include', 'portaudio/src/common'],
+    open('src/rtmixer.c').read(),
+    include_dirs=['src', 'portaudio/include', 'portaudio/src/common'],
     sources=['portaudio/src/common/pa_ringbuffer.c'],
 )
 

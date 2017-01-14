@@ -3,7 +3,7 @@ from setuptools import setup
 __version__ = 'unknown'
 
 # "import" __version__
-for line in open('rtmixer.py'):
+for line in open('src/rtmixer.py'):
     if line.startswith('__version__'):
         exec(line)
         break
@@ -11,6 +11,7 @@ for line in open('rtmixer.py'):
 setup(
     name='rtmixer',
     version=__version__,
+    package_dir={'': 'src'},
     py_modules=['rtmixer'],
     setup_requires=['CFFI>=1.4.0'],
     cffi_modules=['rtmixer_build.py:ffibuilder'],

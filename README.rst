@@ -82,11 +82,6 @@ or ::
 
     python3 -m pip install -e . --user
 
-If you just want to compile the C extension module (without installing the
-``rtmixer`` module), you can run this::
-
-    python3 rtmixer_build.py
-
 Usage
 -----
 
