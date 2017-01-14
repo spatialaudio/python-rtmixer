@@ -23,13 +23,13 @@ enum actiontype
 
 struct action
 {
-  enum actiontype actiontype;
+  const enum actiontype actiontype;
   struct action* next;
   union {
-    float* buffer;
-    PaUtilRingBuffer* ringbuffer;
+    float* const buffer;
+    PaUtilRingBuffer* const ringbuffer;
   };
-  unsigned long total_frames;
+  const unsigned long total_frames;
   unsigned long done_frames;
   // TODO: channel mapping (pointer to list of channels + length)
   // TODO: something to store the result of the action?
@@ -37,10 +37,10 @@ struct action
 
 struct state
 {
-  int input_channels;
-  int output_channels;
-  PaUtilRingBuffer* action_q;  // Queue for incoming commands
-  PaUtilRingBuffer* result_q;  // Queue for results and command disposal
+  const int input_channels;
+  const int output_channels;
+  PaUtilRingBuffer* const action_q;  // Queue for incoming commands
+  PaUtilRingBuffer* const result_q;  // Queue for results and command disposal
   struct action* actions;  // Singly linked list of actions
 };
 
