@@ -5,11 +5,8 @@ import sounddevice as _sd
 from _rtmixer import ffi as _ffi, lib as _lib
 
 
-# TODO: mixer class without inputs (kind='output')
-
-
-class RtMixer(_sd._StreamBase):
-    """PortAudio stream with realtime mixing callback."""
+class Mixer(_sd._StreamBase):
+    """PortAudio stream for realtime mixing."""
 
     def __init__(self, channels, **kwargs):
         """Create a realtime mixer object.
@@ -24,17 +21,16 @@ class RtMixer(_sd._StreamBase):
 
         """
         callback = _ffi.addressof(_lib, 'callback')
-        input_channels, output_channels = _sd._split(channels)
 
         # TODO: parameter for ring buffer size
         self._action_q = RingBuffer(_ffi.sizeof('struct action*'), 128)
         self._userdata = _ffi.new('struct state*', dict(
-            input_channels=input_channels,
-            output_channels=output_channels,
+            input_channels=0,
+            output_channels=channels,
             action_q=self._action_q._ptr,
         ))
-        super(RtMixer, self).__init__(
-            kind=None, wrap_callback=None, channels=channels,
+        _sd._StreamBase.__init__(
+            self, kind='output', wrap_callback=None, channels=channels,
             dtype='float32', callback=callback, userdata=self._userdata,
             **kwargs)
 
@@ -48,11 +44,12 @@ class RtMixer(_sd._StreamBase):
             buffer = _ffi.from_buffer(buffer)
         except TypeError:
             pass  # input is not a buffer
+        _, samplesize = _sd._split(self.samplesize)
         action = _ffi.new('struct action*', dict(
             actiontype=_lib.PLAY_BUFFER,
             buffer=_ffi.cast('float*', buffer),
             # TODO: take channels into account!
-            total_frames=_ffi.sizeof(buffer) // self.samplesize[1],
+            total_frames=_ffi.sizeof(buffer) // samplesize,
         ))
         if not self._action_q.write_available:
             raise RuntimeError('Action queue is full!')
@@ -63,8 +60,9 @@ class RtMixer(_sd._StreamBase):
     def play_ringbuffer(self, ringbuffer):
         """Send a ring buffer to the callback to be played back."""
         # TODO: drain result_q?
-        # TODO: get rid of indexing:
-        if ringbuffer.elementsize != self.samplesize[1] * self.channels[1]:
+        _, samplesize = _sd._split(self.samplesize)
+        _, channels = _sd._split(self.channels)
+        if ringbuffer.elementsize != samplesize * channels:
             raise ValueError('Incompatible elementsize')
         action = _ffi.new('struct action*', dict(
             actiontype=_lib.PLAY_RINGBUFFER,
@@ -77,6 +75,14 @@ class RtMixer(_sd._StreamBase):
         self._actions.append(action)  # TODO: Better way to keep alive?
         # TODO: block until playback has finished (optional)?
         # TODO: return something that allows stopping playback?
+
+
+class Recorder(_sd._StreamBase):
+    """PortAudio stream for realtime recording."""
+
+
+class MixerAndRecorder(Mixer, Recorder):
+    """PortAudio stream for realtime mixing and recording."""
 
 
 class RingBuffer(object):

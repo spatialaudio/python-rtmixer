@@ -52,8 +52,8 @@ for _ in range(bleeps):
     assert bleep.flags.c_contiguous
     bleeplist.append(bleep)
 
-with rtmixer.RtMixer(channels=channels, blocksize=blocksize,
-                     samplerate=samplerate, latency=latency) as m:
+with rtmixer.Mixer(channels=channels, blocksize=blocksize,
+                   samplerate=samplerate, latency=latency) as m:
     for bleep in bleeplist:
         m.play_buffer(bleep)
         sleeptime = r.uniform(sleep_min, sleep_max)

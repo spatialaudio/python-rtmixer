@@ -14,11 +14,10 @@ reading_blocksize = 1024
 reading_qsize = 16  # Number of blocks, has to be power of two
 
 with sf.SoundFile(filename) as f:
-    with rtmixer.RtMixer(channels=f.channels,
-                         blocksize=playback_blocksize,
-                         samplerate=f.samplerate, latency=latency) as m:
-        # TODO: indexing not necessary for output-only mixer object:
-        elementsize = f.channels * m.samplesize[1]
+    with rtmixer.Mixer(channels=f.channels,
+                       blocksize=playback_blocksize,
+                       samplerate=f.samplerate, latency=latency) as m:
+        elementsize = f.channels * m.samplesize
         q = rtmixer.RingBuffer(elementsize, reading_blocksize * reading_qsize)
         # Pre-fill ringbuffer:
         _, buf, _ = q.get_write_buffers(reading_blocksize * reading_qsize)
