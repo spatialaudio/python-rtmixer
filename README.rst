@@ -13,23 +13,25 @@ like garbage collection and the GIL.
 All PortAudio platforms and host APIs are supported.
 Runs on any Python version where CFFI is available.
 
-Planned features:
+Features:
 
-* playback of multiple signals at the same time (fixed maximum number?)
+* playback of multiple signals at the same time (that's why it's called "mixer")
+
+* non-blocking callback function, using PortAudio ringbuffers
+
+* play from buffer, play from ringbuffer
+
+* multichannel support
+
+* all memory allocations/deallocations happen outside of the audio callback
+
+Planned features:
 
 * fixed latency playback, no jitter (optional)
 
 * sample-accurate playback/recording (with known offset)
 
-* non-blocking callback function, using PortAudio ringbuffer(s)
-
-* play from memory, play from generator
-
-* multichannel support
-
 * meticulous reporting of overruns/underruns
-
-* all memory allocations/deallocations happen outside of the audio callback
 
 * loopback tests to verify correct operation and accurate latency values
 
@@ -85,7 +87,4 @@ or ::
 Usage
 -----
 
-.. code:: python
-
-    import rtmixer
-    mixer = rtmixer.RtMixer()
+See the examples in the `examples/` directory.
