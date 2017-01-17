@@ -47,6 +47,7 @@ ffibuilder.set_source(
     open('src/rtmixer.c').read(),
     include_dirs=['src', 'portaudio/include', 'portaudio/src/common'],
     sources=['portaudio/src/common/pa_ringbuffer.c'],
+    #extra_compile_args=['-Wconversion'],
 )
 
 if __name__ == '__main__':

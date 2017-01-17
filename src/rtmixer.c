@@ -4,7 +4,7 @@
 #include <pa_ringbuffer.h>
 #include "rtmixer.h"
 
-int callback(const void* input, void* output, unsigned long frameCount
+int callback(const void* input, void* output, frame_t frameCount
   , const PaStreamCallbackTimeInfo* timeInfo, PaStreamCallbackFlags statusFlags
   , void* userData)
 {
@@ -38,7 +38,7 @@ int callback(const void* input, void* output, unsigned long frameCount
     {
       case PLAY_BUFFER:
       {
-        unsigned long frames = action->total_frames - action->done_frames;
+        frame_t frames = action->total_frames - action->done_frames;
         if (frameCount < frames)
         {
           frames = frameCount;
@@ -51,7 +51,7 @@ int callback(const void* input, void* output, unsigned long frameCount
           if (diff > 0)
           {
             // TODO: floor?
-            unsigned long offset = diff * state->samplerate;
+            frame_t offset = (frame_t)(diff * state->samplerate);
             if (offset >= frameCount)
             {
               // We are too early!
@@ -61,7 +61,7 @@ int callback(const void* input, void* output, unsigned long frameCount
             target += offset * state->output_channels;
             // Re-calculate offset to get rounding errors
             action->actual_time = timeInfo->outputBufferDacTime
-              + offset / state->samplerate;
+              + (double)offset / state->samplerate;
           }
           else
           {
@@ -118,7 +118,7 @@ int callback(const void* input, void* output, unsigned long frameCount
           }
           target += state->output_channels;
         }
-        action->done_frames += read_elements;
+        action->done_frames += (frame_t)read_elements;
         PaUtil_AdvanceRingBufferReadIndex(action->ringbuffer, read_elements);
 
         // TODO: if ringbuffer is empty, stop playback, discard action struct

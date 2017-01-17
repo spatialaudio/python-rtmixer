@@ -13,6 +13,8 @@
 //
 // if queue is empty/full, stop playback/recording
 
+typedef unsigned long frame_t;
+
 enum actiontype
 {
   PLAY_BUFFER,
@@ -31,23 +33,23 @@ struct action
     float* const buffer;
     PaUtilRingBuffer* const ringbuffer;
   };
-  const unsigned long total_frames;
-  unsigned long done_frames;
+  const frame_t total_frames;
+  frame_t done_frames;
   // TODO: something to store the result of the action?
-  const int channels;
-  const int mapping[];  // "flexible array member", size given by "channels"
+  const frame_t channels;  // Size of the following array
+  const frame_t mapping[];  // "flexible array member"
 };
 
 struct state
 {
-  const int input_channels;
-  const int output_channels;
+  const frame_t input_channels;
+  const frame_t output_channels;
   double samplerate;
   PaUtilRingBuffer* const action_q;  // Queue for incoming commands
   PaUtilRingBuffer* const result_q;  // Queue for results and command disposal
   struct action* actions;  // Singly linked list of actions
 };
 
-int callback(const void* input, void* output, unsigned long frames
+int callback(const void* input, void* output, frame_t frames
   , const PaStreamCallbackTimeInfo* time, PaStreamCallbackFlags status
   , void* userdata);
