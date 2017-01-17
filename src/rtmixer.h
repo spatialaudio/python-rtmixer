@@ -24,6 +24,8 @@ enum actiontype
 struct action
 {
   const enum actiontype actiontype;
+  PaTime requested_time;
+  PaTime actual_time;
   struct action* next;
   union {
     float* const buffer;
@@ -40,6 +42,7 @@ struct state
 {
   const int input_channels;
   const int output_channels;
+  double samplerate;
   PaUtilRingBuffer* const action_q;  // Queue for incoming commands
   PaUtilRingBuffer* const result_q;  // Queue for results and command disposal
   struct action* actions;  // Singly linked list of actions

@@ -23,7 +23,7 @@ class Mixer(_sd._StreamBase):
         callback = _ffi.addressof(_lib, 'callback')
 
         # TODO: parameter for ring buffer size
-        self._action_q = RingBuffer(_ffi.sizeof('struct action*'), 128)
+        self._action_q = RingBuffer(_ffi.sizeof('struct action*'), 512)
         self._userdata = _ffi.new('struct state*', dict(
             input_channels=0,
             output_channels=channels,
@@ -33,10 +33,12 @@ class Mixer(_sd._StreamBase):
             self, kind='output', wrap_callback=None, channels=channels,
             dtype='float32', callback=callback, userdata=self._userdata,
             **kwargs)
+        # Add a few attributes that are only known after opening the stream:
+        self._userdata.samplerate = self.samplerate
 
         self._actions = []
 
-    def play_buffer(self, buffer, channels):
+    def play_buffer(self, buffer, channels, start=0):
         """Send a buffer to the callback to be played back.
 
         After that, the *buffer* must not be written to anymore.
@@ -48,6 +50,7 @@ class Mixer(_sd._StreamBase):
         _, samplesize = _sd._split(self.samplesize)
         action = _ffi.new('struct action*', dict(
             actiontype=_lib.PLAY_BUFFER,
+            requested_time=start,
             # Cast to float* to allow playing bytes objects:
             buffer=_ffi.cast('float*', buffer),
             total_frames=len(buffer) // channels // samplesize,

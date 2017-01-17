@@ -22,8 +22,8 @@ duration_min = 0.2
 duration_max = 0.6
 amplitude_min = 0.05
 amplitude_max = 0.15
-sleep_min = 0
-sleep_max = 0.1
+start_min = 0
+start_max = 10
 channels = None
 sleeptime = 5
 
@@ -60,9 +60,10 @@ for _ in range(bleeps):
 
 with rtmixer.Mixer(device=device, channels=channels, blocksize=blocksize,
                    samplerate=samplerate, latency=latency) as m:
+    start_time = m.time
     for bleep in bleeplist:
-        m.play_buffer(bleep, channels=[r.randint(channels) + 1])
-        sleeptime = r.uniform(sleep_min, sleep_max)
-        sd.sleep(int(1000 * sleeptime))
+        m.play_buffer(bleep,
+                      channels=[r.randint(channels) + 1],
+                      start=start_time + r.uniform(start_min, start_max))
     # TODO: wait until the last bleep has finished
-    sd.sleep(int(1000 * duration_max))
+    sd.sleep(int(1000 * (start_max + duration_max)))

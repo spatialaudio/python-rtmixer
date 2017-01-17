@@ -13,6 +13,7 @@ ffibuilder.cdef("""
 
 /* From portaudio.h: */
 
+typedef double PaTime;
 typedef struct PaStreamCallbackTimeInfo PaStreamCallbackTimeInfo;
 typedef unsigned long PaStreamCallbackFlags;
 

@@ -47,8 +47,27 @@ int callback(const void* input, void* output, unsigned long frameCount
         float* target = output;
         if (action->done_frames == 0)
         {
-          // TODO: get start time, increment target, decrement frames
-          // TODO: store timestamp of actual start of playback
+          PaTime diff = action->requested_time - timeInfo->outputBufferDacTime;
+          if (diff > 0)
+          {
+            // TODO: floor?
+            unsigned long offset = diff * state->samplerate;
+            if (offset >= frameCount)
+            {
+              // We are too early!
+              goto next_action;
+            }
+            frames -= offset;
+            target += offset * state->output_channels;
+            // Re-calculate offset to get rounding errors
+            action->actual_time = timeInfo->outputBufferDacTime
+              + offset / state->samplerate;
+          }
+          else
+          {
+            // We are too late!
+            action->actual_time = timeInfo->outputBufferDacTime;
+          }
         }
         float* source = action->buffer;
         source += action->done_frames * action->channels;
@@ -119,6 +138,7 @@ int callback(const void* input, void* output, unsigned long frameCount
         ;
         // TODO: error!
     }
+next_action:
     action = action->next;
   }
 
