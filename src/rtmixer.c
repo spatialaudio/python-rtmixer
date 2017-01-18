@@ -74,7 +74,7 @@ int callback(const void* input, void* output, frame_t frameCount
         action->done_frames += frames;
         while (frames--)
         {
-          for (int c = 0; c < action->channels; c++)
+          for (frame_t c = 0; c < action->channels; c++)
           {
             target[action->mapping[c] - 1] += *source++;
           }
@@ -104,7 +104,7 @@ int callback(const void* input, void* output, frame_t frameCount
         float* target = output;
         while (size1--)
         {
-          for (int c = 0; c < action->channels; c++)
+          for (frame_t c = 0; c < action->channels; c++)
           {
             target[action->mapping[c] - 1] += *block1++;
           }
@@ -112,7 +112,7 @@ int callback(const void* input, void* output, frame_t frameCount
         }
         while (size2--)
         {
-          for (int c = 0; c < action->channels; c++)
+          for (frame_t c = 0; c < action->channels; c++)
           {
             target[action->mapping[c] - 1] += *block2++;
           }
