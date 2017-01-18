@@ -4,6 +4,28 @@
 #include <pa_ringbuffer.h>
 #include "rtmixer.h"
 
+frame_t get_offset(PaTime time, struct action* action, struct state* state)
+{
+  frame_t offset = 0;
+  if (action->done_frames == 0)
+  {
+    PaTime diff = action->requested_time - time;
+    if (diff > 0)
+    {
+      // TODO: floor?
+      offset = (frame_t)(diff * state->samplerate);
+      // Re-calculate "diff" to get rounding errors
+      action->actual_time = time + (double)offset / state->samplerate;
+    }
+    else
+    {
+      // We are too late!
+      action->actual_time = time;
+    }
+  }
+  return offset;
+}
+
 int callback(const void* input, void* output, frame_t frameCount
   , const PaStreamCallbackTimeInfo* timeInfo, PaStreamCallbackFlags statusFlags
   , void* userData)
@@ -38,37 +60,23 @@ int callback(const void* input, void* output, frame_t frameCount
     {
       case PLAY_BUFFER:
       {
+        frame_t offset = get_offset(timeInfo->outputBufferDacTime,
+                                    action, state);
+        if (offset >= frameCount)
+        {
+          // We are too early!
+          goto next_action;
+        }
         frame_t frames = action->total_frames - action->done_frames;
         if (frameCount < frames)
         {
           frames = frameCount;
         }
-
         float* target = output;
-        if (action->done_frames == 0)
-        {
-          PaTime diff = action->requested_time - timeInfo->outputBufferDacTime;
-          if (diff > 0)
-          {
-            // TODO: floor?
-            frame_t offset = (frame_t)(diff * state->samplerate);
-            if (offset >= frameCount)
-            {
-              // We are too early!
-              goto next_action;
-            }
-            frames -= offset;
-            target += offset * state->output_channels;
-            // Re-calculate offset to get rounding errors
-            action->actual_time = timeInfo->outputBufferDacTime
-              + (double)offset / state->samplerate;
-          }
-          else
-          {
-            // We are too late!
-            action->actual_time = timeInfo->outputBufferDacTime;
-          }
-        }
+
+        frames -= offset;
+        target += offset * state->output_channels;
+
         float* source = action->buffer;
         source += action->done_frames * action->channels;
         action->done_frames += frames;
@@ -90,18 +98,24 @@ int callback(const void* input, void* output, frame_t frameCount
       {
         // TODO: continue to ignore action->total_frames?
 
-        // TODO: get start time
-        // TODO: store timestamp of actual start of playback
+        frame_t offset = get_offset(timeInfo->outputBufferDacTime,
+                                    action, state);
+        if (offset >= frameCount)
+        {
+          // We are too early!
+          goto next_action;
+        }
+        float* target = output;
+        target += offset * state->output_channels;
         float* block1 = NULL;
         float* block2 = NULL;
         ring_buffer_size_t size1 = 0;
         ring_buffer_size_t size2 = 0;
 
         ring_buffer_size_t read_elements = PaUtil_GetRingBufferReadRegions(
-            action->ringbuffer, (ring_buffer_size_t)frameCount,
+            action->ringbuffer, (ring_buffer_size_t)(frameCount - offset),
             (void**)&block1, &size1, (void**)&block2, &size2);
 
-        float* target = output;
         while (size1--)
         {
           for (frame_t c = 0; c < action->channels; c++)

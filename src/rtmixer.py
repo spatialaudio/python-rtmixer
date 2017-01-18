@@ -64,7 +64,7 @@ class Mixer(_sd._StreamBase):
         assert ret == 1
         self._actions.append(action)  # TODO: Better way to keep alive?
 
-    def play_ringbuffer(self, ringbuffer, channels=None):
+    def play_ringbuffer(self, ringbuffer, channels=None, start=0):
         """Send a ring buffer to the callback to be played back.
 
         By default, the number of channels is obtained from the ring
@@ -80,6 +80,7 @@ class Mixer(_sd._StreamBase):
             raise ValueError('Incompatible elementsize')
         action = _ffi.new('struct action*', dict(
             actiontype=_lib.PLAY_RINGBUFFER,
+            requested_time=start,
             ringbuffer=ringbuffer._ptr,
             channels=channels,
             mapping=mapping,
