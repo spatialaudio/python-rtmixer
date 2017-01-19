@@ -72,7 +72,7 @@ int callback(const void* input, void* output, frame_t frameCount
         {
           frames = frameCount;
         }
-        float* target = output;
+        float* target = (float*)output;
 
         frames -= offset;
         target += offset * state->output_channels;
@@ -105,7 +105,7 @@ int callback(const void* input, void* output, frame_t frameCount
           // We are too early!
           goto next_action;
         }
-        float* target = output;
+        float* target = (float*)output;
         target += offset * state->output_channels;
         float* block1 = NULL;
         float* block2 = NULL;
