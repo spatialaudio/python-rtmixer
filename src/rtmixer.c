@@ -1,5 +1,6 @@
 /* See rtmixer_build.py */
 
+#include <math.h>  // for llround()
 #include <portaudio.h>
 #include <pa_ringbuffer.h>
 #include "rtmixer.h"
@@ -12,9 +13,8 @@ frame_t get_offset(PaTime time, struct action* action, struct state* state)
     PaTime diff = action->requested_time - time;
     if (diff > 0)
     {
-      // TODO: floor?
-      offset = (frame_t)(diff * state->samplerate);
-      // Re-calculate "diff" to get rounding errors
+      offset = (frame_t)llround(diff * state->samplerate);
+      // Re-calculate "diff" to propagate rounding errors
       action->actual_time = time + (double)offset / state->samplerate;
     }
     else
