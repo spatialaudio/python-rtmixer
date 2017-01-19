@@ -73,7 +73,7 @@ class Mixer(_Base):
             channels=channels,
             mapping=mapping,
         ))
-        # TODO: avoid code duplication with play_ringbuffer():
+        # TODO: avoid code duplication with other functions:
         if not self._action_q.write_available:
             raise RuntimeError('Action queue is full!')
         ret = self._action_q.write(_ffi.new('struct action**', action))
@@ -112,6 +112,41 @@ class Mixer(_Base):
 
 class Recorder(_Base):
     """PortAudio input stream for realtime recording."""
+
+    def __init__(self, **kwargs):
+        """Create a realtime recording object.
+
+        Takes the same keyword arguments as `sounddevice.InputStream`,
+        except *callback* and *dtype*.
+
+        Uses default values from `sounddevice.default`.
+
+        """
+        _Base.__init__(self, kind='input', **kwargs)
+        self._userdata.input_channels = self.channels
+        self._userdata.output_channels = 0
+
+    def record_buffer(self, buffer, channels, start=0):
+        """Send a buffer to the callback to be recorded into.
+
+        """
+        # TODO: drain result_q?
+        channels, mapping = self._check_channels(channels, 'input')
+        buffer = _ffi.from_buffer(buffer)
+        samplesize, _ = _sd._split(self.samplesize)
+        action = _ffi.new('struct action*', dict(
+            actiontype=_lib.RECORD_BUFFER,
+            requested_time=start,
+            buffer=buffer,
+            total_frames=len(buffer) // channels // samplesize,
+            channels=channels,
+            mapping=mapping,
+        ))
+        if not self._action_q.write_available:
+            raise RuntimeError('Action queue is full!')
+        ret = self._action_q.write(_ffi.new('struct action**', action))
+        assert ret == 1
+        self._actions.append(action)  # TODO: Better way to keep alive?
 
 
 class MixerAndRecorder(Mixer, Recorder):

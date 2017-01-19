@@ -145,7 +145,42 @@ int callback(const void* input, void* output, frame_t frameCount
       }
       case RECORD_BUFFER:
       {
-        // TODO
+        frame_t offset = get_offset(timeInfo->inputBufferAdcTime,
+                                    action, state);
+        if (offset >= frameCount)
+        {
+          // We are too early!
+          goto next_action;
+        }
+        frame_t frames = action->total_frames - action->done_frames;
+        if (frameCount < frames)
+        {
+          frames = frameCount;
+        }
+        float* source = (float*)input;
+
+        if (frames + offset > frameCount)
+        {
+          assert(frameCount > offset);
+          frames = frameCount - offset;
+        }
+        source += offset * state->input_channels;
+
+        float* target = action->buffer;
+        target += action->done_frames * action->channels;
+        action->done_frames += frames;
+        while (frames--)
+        {
+          for (frame_t c = 0; c < action->channels; c++)
+          {
+            *target++ = source[action->mapping[c] - 1];
+          }
+          source += state->input_channels;
+        }
+        if (action->done_frames == action->total_frames)
+        {
+          // TODO: stop recording, discard action struct
+        }
         break;
       }
       case RECORD_RINGBUFFER:
@@ -160,8 +195,6 @@ int callback(const void* input, void* output, frame_t frameCount
 next_action:
     action = action->next;
   }
-
-  // Note: input data is ignored for now
 
   return paContinue;
 }
