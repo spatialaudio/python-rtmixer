@@ -5,38 +5,54 @@ import sounddevice as _sd
 from _rtmixer import ffi as _ffi, lib as _lib
 
 
-class Mixer(_sd._StreamBase):
-    """PortAudio stream for realtime mixing."""
+class _Base(_sd._StreamBase):
+    """Base class for Mixer et al."""
 
-    def __init__(self, channels, **kwargs):
-        """Create a realtime mixer object.
-
-        Takes the same keyword arguments as `sounddevice.Stream`, except
-        *callback* and *dtype*.
-
-        In contrast to `sounddevice.Stream`, the *channels* argument is
-        not optional.
-
-        Uses default values from `sounddevice.default`.
-
-        """
+    def __init__(self, kind, **kwargs):
         callback = _ffi.addressof(_lib, 'callback')
 
         # TODO: parameter for ring buffer size
         self._action_q = RingBuffer(_ffi.sizeof('struct action*'), 512)
         self._userdata = _ffi.new('struct state*', dict(
-            input_channels=0,
-            output_channels=channels,
             action_q=self._action_q._ptr,
         ))
         _sd._StreamBase.__init__(
-            self, kind='output', wrap_callback=None, channels=channels,
-            dtype='float32', callback=callback, userdata=self._userdata,
-            **kwargs)
-        # Add a few attributes that are only known after opening the stream:
+            self, kind=kind, dtype='float32',
+            callback=callback, userdata=self._userdata, **kwargs)
         self._userdata.samplerate = self.samplerate
 
         self._actions = []
+
+    def _check_channels(self, channels, kind):
+        """Check if number of channels or mapping was given."""
+        assert kind in ('input', 'output')
+        try:
+            channels, mapping = len(channels), channels
+        except TypeError:
+            mapping = tuple(range(1, channels + 1))
+        max_channels = _sd._split(self.channels)[kind == 'output']
+        if max(mapping) > max_channels:
+            raise ValueError('Channel number too large')
+        if min(mapping) < 1:
+            raise ValueError('Channel numbers start with 1')
+        return channels, mapping
+
+
+class Mixer(_Base):
+    """PortAudio output stream for realtime mixing."""
+
+    def __init__(self, **kwargs):
+        """Create a realtime mixer object.
+
+        Takes the same keyword arguments as `sounddevice.OutputStream`,
+        except *callback* and *dtype*.
+
+        Uses default values from `sounddevice.default`.
+
+        """
+        _Base.__init__(self, kind='output', **kwargs)
+        self._userdata.input_channels = 0
+        self._userdata.output_channels = self.channels
 
     def play_buffer(self, buffer, channels, start=0):
         """Send a buffer to the callback to be played back.
@@ -93,23 +109,9 @@ class Mixer(_sd._StreamBase):
         # TODO: block until playback has finished (optional)?
         # TODO: return something that allows stopping playback?
 
-    def _check_channels(self, channels, kind):
-        """Check if number of channels or mapping was given."""
-        assert kind in ('input', 'output')
-        try:
-            channels, mapping = len(channels), channels
-        except TypeError:
-            mapping = tuple(range(1, channels + 1))
-        max_channels = _sd._split(self.channels)[kind == 'output']
-        if max(mapping) > max_channels:
-            raise ValueError('Channel number too large')
-        if min(mapping) < 1:
-            raise ValueError('Channel numbers start with 1')
-        return channels, mapping
 
-
-class Recorder(_sd._StreamBase):
-    """PortAudio stream for realtime recording."""
+class Recorder(_Base):
+    """PortAudio input stream for realtime recording."""
 
 
 class MixerAndRecorder(Mixer, Recorder):
