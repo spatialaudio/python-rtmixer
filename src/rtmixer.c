@@ -185,7 +185,46 @@ int callback(const void* input, void* output, frame_t frameCount
       }
       case RECORD_RINGBUFFER:
       {
-        // TODO
+        // TODO: continue to ignore action->total_frames?
+
+        frame_t offset = get_offset(timeInfo->inputBufferAdcTime,
+                                    action, state);
+        if (offset >= frameCount)
+        {
+          // We are too early!
+          goto next_action;
+        }
+        float* source = (float*)input;
+        source += offset * state->input_channels;
+        float* block1 = NULL;
+        float* block2 = NULL;
+        ring_buffer_size_t size1 = 0;
+        ring_buffer_size_t size2 = 0;
+
+        ring_buffer_size_t written = PaUtil_GetRingBufferWriteRegions(
+            action->ringbuffer, (ring_buffer_size_t)(frameCount - offset),
+            (void**)&block1, &size1, (void**)&block2, &size2);
+
+        while (size1--)
+        {
+          for (frame_t c = 0; c < action->channels; c++)
+          {
+             *block1++ = source[action->mapping[c] - 1];
+          }
+          source += state->input_channels;
+        }
+        while (size2--)
+        {
+          for (frame_t c = 0; c < action->channels; c++)
+          {
+            *block2++ = source[action->mapping[c] - 1];
+          }
+          source += state->input_channels;
+        }
+        action->done_frames += (frame_t)written;
+        PaUtil_AdvanceRingBufferWriteIndex(action->ringbuffer, written);
+
+        // TODO: if ringbuffer is empty, stop playback, discard action struct
         break;
       }
       default:

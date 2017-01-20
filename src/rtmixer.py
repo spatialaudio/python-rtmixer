@@ -148,6 +148,37 @@ class Recorder(_Base):
         assert ret == 1
         self._actions.append(action)  # TODO: Better way to keep alive?
 
+    def record_ringbuffer(self, ringbuffer, channels=None, start=0):
+        """Send a ring buffer to the callback to be recorded into.
+
+        By default, the number of channels is obtained from the ring
+        buffer's *elementsize*.
+
+        """
+        # TODO: drain result_q?
+
+        # TODO: avoid code duplication
+        samplesize, _ = _sd._split(self.samplesize)
+        if channels is None:
+            channels = ringbuffer.elementsize // samplesize
+        channels, mapping = self._check_channels(channels, 'input')
+        if ringbuffer.elementsize != samplesize * channels:
+            raise ValueError('Incompatible elementsize')
+        action = _ffi.new('struct action*', dict(
+            actiontype=_lib.RECORD_RINGBUFFER,
+            requested_time=start,
+            ringbuffer=ringbuffer._ptr,
+            channels=channels,
+            mapping=mapping,
+        ))
+        if not self._action_q.write_available:
+            raise RuntimeError('Action queue is full!')
+        ret = self._action_q.write(_ffi.new('struct action**', action))
+        assert ret == 1
+        self._actions.append(action)  # TODO: Better way to keep alive?
+        # TODO: block until playback has finished (optional)?
+        # TODO: return something that allows stopping playback?
+
 
 class MixerAndRecorder(Mixer, Recorder):
     """PortAudio stream for realtime mixing and recording."""
