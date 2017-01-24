@@ -1,4 +1,4 @@
-/* See rtmixer_build.py */
+/* See ../rtmixer_build.py */
 
 #include <assert.h>  // for assert()
 #include <math.h>  // for llround()
@@ -37,11 +37,14 @@ int callback(const void* input, void* output, frame_t frameCount
     state->actions = action;
   }
 
-  for (struct action** actionaddr = &(state->actions)
+  // Using pointer-to-pointer to be able to remove list elements
+  for (struct action ** actionaddr = &(state->actions), ** nextaddr = NULL
       ; *actionaddr
-      ; actionaddr = &((*actionaddr)->next))
+      ; actionaddr = nextaddr)
   {
     struct action* const action = *actionaddr;
+    nextaddr = &(action->next);
+
     const bool playing = action->actiontype == PLAY_BUFFER
                       || action->actiontype == PLAY_RINGBUFFER;
     const bool recording = action->actiontype == RECORD_BUFFER
@@ -61,15 +64,20 @@ int callback(const void* input, void* output, frame_t frameCount
     }
 
     frame_t offset = 0;
+
     if (action->done_frames == 0)
     {
       PaTime diff = action->requested_time - io_time;
-      if (diff > 0)
+      if (diff >= 0.0)
       {
         offset = (frame_t)llround(diff * state->samplerate);
         if (offset >= frameCount)
         {
           // We are too early!
+
+          // Due to inaccuracies in timeInfo, "diff" might have a small negative
+          // value in a future block.  We don't count this as "belated" though:
+          action->allow_belated = true;
           continue;
         }
         // Re-calculate "diff" to propagate rounding errors
@@ -78,11 +86,19 @@ int callback(const void* input, void* output, frame_t frameCount
       else
       {
         // We are too late!
+        if (!action->allow_belated)
+        {
+          action->actual_time = 0.0;  // a.k.a. "false"
+          // TODO: put action onto disposal queue
+          *actionaddr = action->next;  // Current action is removed
+          // Continue with the same address, which now holds a new pointer:
+          nextaddr = actionaddr;
+          continue;
+        }
         action->actual_time = io_time;
       }
     }
 
-    frame_t frames = 0;
     float* target = NULL;
     float* source = NULL;
 
@@ -94,6 +110,8 @@ int callback(const void* input, void* output, frame_t frameCount
     {
       source = (float*)input + offset * state->input_channels;
     }
+
+    frame_t frames = 0;
 
     if (using_buffer)
     {

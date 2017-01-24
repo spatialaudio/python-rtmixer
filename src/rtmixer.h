@@ -26,6 +26,7 @@ enum actiontype
 struct action
 {
   const enum actiontype actiontype;
+  bool allow_belated;
   PaTime requested_time;
   PaTime actual_time;
   struct action* next;

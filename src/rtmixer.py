@@ -54,7 +54,7 @@ class Mixer(_Base):
         self._userdata.input_channels = 0
         self._userdata.output_channels = self.channels
 
-    def play_buffer(self, buffer, channels, start=0):
+    def play_buffer(self, buffer, channels, start=0, allow_belated=True):
         """Send a buffer to the callback to be played back.
 
         After that, the *buffer* must not be written to anymore.
@@ -66,6 +66,7 @@ class Mixer(_Base):
         _, samplesize = _sd._split(self.samplesize)
         action = _ffi.new('struct action*', dict(
             actiontype=_lib.PLAY_BUFFER,
+            allow_belated=allow_belated,
             requested_time=start,
             buffer=_ffi.cast('float*', buffer),
             total_frames=len(buffer) // channels // samplesize,
@@ -79,7 +80,8 @@ class Mixer(_Base):
         assert ret == 1
         self._actions.append(action)  # TODO: Better way to keep alive?
 
-    def play_ringbuffer(self, ringbuffer, channels=None, start=0):
+    def play_ringbuffer(self, ringbuffer, channels=None, start=0,
+                        allow_belated=True):
         """Send a ring buffer to the callback to be played back.
 
         By default, the number of channels is obtained from the ring
@@ -95,6 +97,7 @@ class Mixer(_Base):
             raise ValueError('Incompatible elementsize')
         action = _ffi.new('struct action*', dict(
             actiontype=_lib.PLAY_RINGBUFFER,
+            allow_belated=allow_belated,
             requested_time=start,
             ringbuffer=ringbuffer._ptr,
             channels=channels,
@@ -125,7 +128,7 @@ class Recorder(_Base):
         self._userdata.input_channels = self.channels
         self._userdata.output_channels = 0
 
-    def record_buffer(self, buffer, channels, start=0):
+    def record_buffer(self, buffer, channels, start=0, allow_belated=True):
         """Send a buffer to the callback to be recorded into.
 
         """
@@ -135,6 +138,7 @@ class Recorder(_Base):
         samplesize, _ = _sd._split(self.samplesize)
         action = _ffi.new('struct action*', dict(
             actiontype=_lib.RECORD_BUFFER,
+            allow_belated=allow_belated,
             requested_time=start,
             buffer=_ffi.cast('float*', buffer),
             total_frames=len(buffer) // channels // samplesize,
@@ -147,7 +151,8 @@ class Recorder(_Base):
         assert ret == 1
         self._actions.append(action)  # TODO: Better way to keep alive?
 
-    def record_ringbuffer(self, ringbuffer, channels=None, start=0):
+    def record_ringbuffer(self, ringbuffer, channels=None, start=0,
+                          allow_belated=True):
         """Send a ring buffer to the callback to be recorded into.
 
         By default, the number of channels is obtained from the ring
@@ -165,6 +170,7 @@ class Recorder(_Base):
             raise ValueError('Incompatible elementsize')
         action = _ffi.new('struct action*', dict(
             actiontype=_lib.RECORD_RINGBUFFER,
+            allow_belated=allow_belated,
             requested_time=start,
             ringbuffer=ringbuffer._ptr,
             channels=channels,
