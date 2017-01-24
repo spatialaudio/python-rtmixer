@@ -2,30 +2,12 @@
 
 #include <assert.h>  // for assert()
 #include <math.h>  // for llround()
+#include <stdbool.h>  // for bool, true, false
+
 #include <portaudio.h>
 #include <pa_ringbuffer.h>
-#include "rtmixer.h"
 
-frame_t get_offset(PaTime time, struct action* action, struct state* state)
-{
-  frame_t offset = 0;
-  if (action->done_frames == 0)
-  {
-    PaTime diff = action->requested_time - time;
-    if (diff > 0)
-    {
-      offset = (frame_t)llround(diff * state->samplerate);
-      // Re-calculate "diff" to propagate rounding errors
-      action->actual_time = time + (double)offset / state->samplerate;
-    }
-    else
-    {
-      // We are too late!
-      action->actual_time = time;
-    }
-  }
-  return offset;
-}
+#include "rtmixer.h"
 
 int callback(const void* input, void* output, frame_t frameCount
   , const PaStreamCallbackTimeInfo* timeInfo, PaStreamCallbackFlags statusFlags
@@ -44,8 +26,9 @@ int callback(const void* input, void* output, frame_t frameCount
 
   // TODO: check if main thread is still running?
 
-  struct action* action = NULL;
-  while (PaUtil_ReadRingBuffer(state->action_q, &action, 1))
+  for (struct action* action = NULL
+      ; PaUtil_ReadRingBuffer(state->action_q, &action, 1)
+      ;)
   {
     // TODO: check action type, remove things if necessary
 
@@ -54,36 +37,79 @@ int callback(const void* input, void* output, frame_t frameCount
     state->actions = action;
   }
 
-  action = state->actions;
-  while (action)
+  for (struct action** actionaddr = &(state->actions)
+      ; *actionaddr
+      ; actionaddr = &((*actionaddr)->next))
   {
-    switch (action->actiontype)
+    struct action* const action = *actionaddr;
+    const bool playing = action->actiontype == PLAY_BUFFER
+                      || action->actiontype == PLAY_RINGBUFFER;
+    const bool recording = action->actiontype == RECORD_BUFFER
+                        || action->actiontype == RECORD_RINGBUFFER;
+    const bool using_buffer = action->actiontype == PLAY_BUFFER
+                           || action->actiontype == RECORD_BUFFER;
+    const bool using_ringbuffer = action->actiontype == PLAY_RINGBUFFER
+                               || action->actiontype == RECORD_RINGBUFFER;
+    PaTime io_time = 0;
+    if (playing)
     {
-      case PLAY_BUFFER:
+      io_time = timeInfo->outputBufferDacTime;
+    }
+    if (recording)
+    {
+      io_time = timeInfo->inputBufferAdcTime;
+    }
+
+    frame_t offset = 0;
+    if (action->done_frames == 0)
+    {
+      PaTime diff = action->requested_time - io_time;
+      if (diff > 0)
       {
-        frame_t offset = get_offset(timeInfo->outputBufferDacTime,
-                                    action, state);
+        offset = (frame_t)llround(diff * state->samplerate);
         if (offset >= frameCount)
         {
           // We are too early!
-          goto next_action;
+          continue;
         }
-        frame_t frames = action->total_frames - action->done_frames;
-        if (frameCount < frames)
-        {
-          frames = frameCount;
-        }
-        float* target = (float*)output;
+        // Re-calculate "diff" to propagate rounding errors
+        action->actual_time = io_time + (double)offset / state->samplerate;
+      }
+      else
+      {
+        // We are too late!
+        action->actual_time = io_time;
+      }
+    }
 
-        if (frames + offset > frameCount)
-        {
-          assert(frameCount > offset);
-          frames = frameCount - offset;
-        }
-        target += offset * state->output_channels;
+    frame_t frames = 0;
+    float* target = NULL;
+    float* source = NULL;
 
-        float* source = action->buffer;
-        source += action->done_frames * action->channels;
+    if (playing)
+    {
+      target = (float*)output + offset * state->output_channels;
+    }
+    else if (recording)
+    {
+      source = (float*)input + offset * state->input_channels;
+    }
+
+    if (using_buffer)
+    {
+      frames = action->total_frames - action->done_frames;
+      if (frameCount < frames)
+      {
+        frames = frameCount;
+      }
+      if (frames + offset > frameCount)
+      {
+        assert(frameCount > offset);
+        frames = frameCount - offset;
+      }
+      if (playing)
+      {
+        float* source = action->buffer + action->done_frames * action->channels;
         action->done_frames += frames;
         while (frames--)
         {
@@ -93,30 +119,36 @@ int callback(const void* input, void* output, frame_t frameCount
           }
           target += state->output_channels;
         }
-        if (action->done_frames == action->total_frames)
-        {
-          // TODO: stop playback, discard action struct
-        }
-        break;
       }
-      case PLAY_RINGBUFFER:
+      else if (recording)
       {
-        // TODO: continue to ignore action->total_frames?
-
-        frame_t offset = get_offset(timeInfo->outputBufferDacTime,
-                                    action, state);
-        if (offset >= frameCount)
+        float* target = action->buffer + action->done_frames * action->channels;
+        action->done_frames += frames;
+        while (frames--)
         {
-          // We are too early!
-          goto next_action;
+          for (frame_t c = 0; c < action->channels; c++)
+          {
+            *target++ = source[action->mapping[c] - 1];
+          }
+          source += state->input_channels;
         }
-        float* target = (float*)output;
-        target += offset * state->output_channels;
-        float* block1 = NULL;
-        float* block2 = NULL;
-        ring_buffer_size_t size1 = 0;
-        ring_buffer_size_t size2 = 0;
+      }
+      if (action->done_frames == action->total_frames)
+      {
+        // TODO: stop playback/recording, discard action struct
+      }
+    }
+    else if (using_ringbuffer)
+    {
+      // TODO: continue to ignore action->total_frames?
 
+      float* block1 = NULL;
+      float* block2 = NULL;
+      ring_buffer_size_t size1 = 0;
+      ring_buffer_size_t size2 = 0;
+
+      if (playing)
+      {
         ring_buffer_size_t read_elements = PaUtil_GetRingBufferReadRegions(
             action->ringbuffer, (ring_buffer_size_t)(frameCount - offset),
             (void**)&block1, &size1, (void**)&block2, &size2);
@@ -141,66 +173,9 @@ int callback(const void* input, void* output, frame_t frameCount
         PaUtil_AdvanceRingBufferReadIndex(action->ringbuffer, read_elements);
 
         // TODO: if ringbuffer is empty, stop playback, discard action struct
-        break;
       }
-      case RECORD_BUFFER:
+      else if (recording)
       {
-        frame_t offset = get_offset(timeInfo->inputBufferAdcTime,
-                                    action, state);
-        if (offset >= frameCount)
-        {
-          // We are too early!
-          goto next_action;
-        }
-        frame_t frames = action->total_frames - action->done_frames;
-        if (frameCount < frames)
-        {
-          frames = frameCount;
-        }
-        float* source = (float*)input;
-
-        if (frames + offset > frameCount)
-        {
-          assert(frameCount > offset);
-          frames = frameCount - offset;
-        }
-        source += offset * state->input_channels;
-
-        float* target = action->buffer;
-        target += action->done_frames * action->channels;
-        action->done_frames += frames;
-        while (frames--)
-        {
-          for (frame_t c = 0; c < action->channels; c++)
-          {
-            *target++ = source[action->mapping[c] - 1];
-          }
-          source += state->input_channels;
-        }
-        if (action->done_frames == action->total_frames)
-        {
-          // TODO: stop recording, discard action struct
-        }
-        break;
-      }
-      case RECORD_RINGBUFFER:
-      {
-        // TODO: continue to ignore action->total_frames?
-
-        frame_t offset = get_offset(timeInfo->inputBufferAdcTime,
-                                    action, state);
-        if (offset >= frameCount)
-        {
-          // We are too early!
-          goto next_action;
-        }
-        float* source = (float*)input;
-        source += offset * state->input_channels;
-        float* block1 = NULL;
-        float* block2 = NULL;
-        ring_buffer_size_t size1 = 0;
-        ring_buffer_size_t size2 = 0;
-
         ring_buffer_size_t written = PaUtil_GetRingBufferWriteRegions(
             action->ringbuffer, (ring_buffer_size_t)(frameCount - offset),
             (void**)&block1, &size1, (void**)&block2, &size2);
@@ -224,16 +199,9 @@ int callback(const void* input, void* output, frame_t frameCount
         action->done_frames += (frame_t)written;
         PaUtil_AdvanceRingBufferWriteIndex(action->ringbuffer, written);
 
-        // TODO: if ringbuffer is empty, stop playback, discard action struct
-        break;
+        // TODO: if ringbuffer is empty, stop recording, discard action struct
       }
-      default:
-        ;
-        // TODO: error!
     }
-next_action:
-    action = action->next;
   }
-
   return paContinue;
 }
