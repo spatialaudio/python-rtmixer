@@ -1,5 +1,6 @@
 /* See rtmixer_build.py */
 
+#include <assert.h>  // for assert()
 #include <math.h>  // for llround()
 #include <portaudio.h>
 #include <pa_ringbuffer.h>
@@ -74,7 +75,11 @@ int callback(const void* input, void* output, frame_t frameCount
         }
         float* target = (float*)output;
 
-        frames -= offset;
+        if (frames + offset > frameCount)
+        {
+          assert(frameCount > offset);
+          frames = frameCount - offset;
+        }
         target += offset * state->output_channels;
 
         float* source = action->buffer;
