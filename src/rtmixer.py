@@ -67,7 +67,6 @@ class Mixer(_Base):
         action = _ffi.new('struct action*', dict(
             actiontype=_lib.PLAY_BUFFER,
             requested_time=start,
-            # Cast to float* to allow playing bytes objects:
             buffer=_ffi.cast('float*', buffer),
             total_frames=len(buffer) // channels // samplesize,
             channels=channels,
@@ -137,7 +136,7 @@ class Recorder(_Base):
         action = _ffi.new('struct action*', dict(
             actiontype=_lib.RECORD_BUFFER,
             requested_time=start,
-            buffer=buffer,
+            buffer=_ffi.cast('float*', buffer),
             total_frames=len(buffer) // channels // samplesize,
             channels=channels,
             mapping=mapping,
