@@ -188,6 +188,19 @@ class Recorder(_Base):
 class MixerAndRecorder(Mixer, Recorder):
     """PortAudio stream for realtime mixing and recording."""
 
+    def __init__(self, **kwargs):
+        """Create a realtime mixer object with recording capabilities.
+
+        Takes the same keyword arguments as `sounddevice.Stream`,
+        except *callback* and *dtype*.
+
+        Uses default values from `sounddevice.default`.
+
+        """
+        _Base.__init__(self, kind='duplex', **kwargs)
+        self._userdata.input_channels = self.channels[0]
+        self._userdata.output_channels = self.channels[1]
+
 
 class RingBuffer(object):
     """Wrapper for PortAudio's ring buffer.
