@@ -9,6 +9,21 @@
 
 #include "rtmixer.h"
 
+struct action** remove_action(struct action** addr, struct state* state)
+{
+  struct action* action = *addr;
+  *addr = action->next;  // Current action is removed from list
+  action->next = NULL;
+  ring_buffer_size_t written = PaUtil_WriteRingBuffer(state->result_q
+    , &action, 1);
+  if (written != 1)
+  {
+    // TODO: do something? Stop callback? Log error (in "state")?
+    printf("result queue is full\n");
+  }
+  return addr;  // The same address, which now holds a new pointer
+}
+
 int callback(const void* input, void* output, frame_t frameCount
   , const PaStreamCallbackTimeInfo* timeInfo, PaStreamCallbackFlags statusFlags
   , void* userData)
@@ -89,10 +104,7 @@ int callback(const void* input, void* output, frame_t frameCount
         if (!action->allow_belated)
         {
           action->actual_time = 0.0;  // a.k.a. "false"
-          // TODO: put action onto disposal queue
-          *actionaddr = action->next;  // Current action is removed
-          // Continue with the same address, which now holds a new pointer:
-          nextaddr = actionaddr;
+          nextaddr = remove_action(actionaddr, state);
           continue;
         }
         action->actual_time = io_time;
@@ -153,7 +165,7 @@ int callback(const void* input, void* output, frame_t frameCount
       }
       if (action->done_frames == action->total_frames)
       {
-        // TODO: stop playback/recording, discard action struct
+        nextaddr = remove_action(actionaddr, state);
       }
     }
     else if (using_ringbuffer)
@@ -164,12 +176,13 @@ int callback(const void* input, void* output, frame_t frameCount
       float* block2 = NULL;
       ring_buffer_size_t size1 = 0;
       ring_buffer_size_t size2 = 0;
+      ring_buffer_size_t totalsize = 0;
 
       if (playing)
       {
-        ring_buffer_size_t read_elements = PaUtil_GetRingBufferReadRegions(
-            action->ringbuffer, (ring_buffer_size_t)(frameCount - offset),
-            (void**)&block1, &size1, (void**)&block2, &size2);
+        totalsize = PaUtil_GetRingBufferReadRegions(action->ringbuffer
+          , (ring_buffer_size_t)(frameCount - offset)
+          , (void**)&block1, &size1, (void**)&block2, &size2);
 
         while (size1--)
         {
@@ -187,16 +200,14 @@ int callback(const void* input, void* output, frame_t frameCount
           }
           target += state->output_channels;
         }
-        action->done_frames += (frame_t)read_elements;
-        PaUtil_AdvanceRingBufferReadIndex(action->ringbuffer, read_elements);
-
-        // TODO: if ringbuffer is empty, stop playback, discard action struct
+        action->done_frames += (frame_t)totalsize;
+        PaUtil_AdvanceRingBufferReadIndex(action->ringbuffer, totalsize);
       }
       else if (recording)
       {
-        ring_buffer_size_t written = PaUtil_GetRingBufferWriteRegions(
-            action->ringbuffer, (ring_buffer_size_t)(frameCount - offset),
-            (void**)&block1, &size1, (void**)&block2, &size2);
+        totalsize = PaUtil_GetRingBufferWriteRegions(action->ringbuffer
+          , (ring_buffer_size_t)(frameCount - offset)
+          , (void**)&block1, &size1, (void**)&block2, &size2);
 
         while (size1--)
         {
@@ -214,10 +225,17 @@ int callback(const void* input, void* output, frame_t frameCount
           }
           source += state->input_channels;
         }
-        action->done_frames += (frame_t)written;
-        PaUtil_AdvanceRingBufferWriteIndex(action->ringbuffer, written);
+        action->done_frames += (frame_t)totalsize;
+        PaUtil_AdvanceRingBufferWriteIndex(action->ringbuffer, totalsize);
+      }
 
-        // TODO: if ringbuffer is empty, stop recording, discard action struct
+      if (totalsize < frameCount - offset)
+      {
+        // Ring buffer is empty or full
+
+        // TODO: store some information in action?
+
+        nextaddr = remove_action(actionaddr, state);
       }
     }
   }

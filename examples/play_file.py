@@ -23,7 +23,7 @@ with sf.SoundFile(filename) as f:
         _, buf, _ = q.get_write_buffers(reading_blocksize * reading_qsize)
         written = f.buffer_read_into(buf, ctype='float')
         q.advance_write_index(written)
-        m.play_ringbuffer(q)  # TODO: return value?
+        action = m.play_ringbuffer(q)
         while True:
             while q.write_available < reading_blocksize:
                 sd.sleep(int(1000 * reading_blocksize / f.samplerate))
@@ -33,6 +33,5 @@ with sf.SoundFile(filename) as f:
             q.advance_write_index(written)
             if written < size:
                 break
-        input()
-        # TODO: wait until playback is finished
+        m.wait(action)
         # TODO: check for xruns

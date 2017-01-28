@@ -12,15 +12,34 @@ class _Base(_sd._StreamBase):
         callback = _ffi.addressof(_lib, 'callback')
 
         self._action_q = RingBuffer(_ffi.sizeof('struct action*'), qsize)
+        self._result_q = RingBuffer(_ffi.sizeof('struct action*'), qsize)
         self._userdata = _ffi.new('struct state*', dict(
             action_q=self._action_q._ptr,
+            result_q=self._result_q._ptr,
         ))
         _sd._StreamBase.__init__(
             self, kind=kind, dtype='float32',
             callback=callback, userdata=self._userdata, **kwargs)
         self._userdata.samplerate = self.samplerate
 
-        self._actions = []
+        self._actions = set()
+        self._temp_action_ptr = _ffi.new('struct action**')
+
+    @property
+    def actions(self):
+        """The set of active "actions"."""
+        self._drain_result_q()
+        return self._actions
+
+    def wait(self, action, sleeptime=10):
+        """Wait for *action* to be finished.
+
+        Between repeatedly checking if the action is finished, this
+        waits for *sleeptime* milliseconds.
+
+        """
+        while action in self.actions:
+            _sd.sleep(sleeptime)
 
     def _check_channels(self, channels, kind):
         """Check if number of channels or mapping was given."""
@@ -35,6 +54,22 @@ class _Base(_sd._StreamBase):
         if min(mapping) < 1:
             raise ValueError('Channel numbers start with 1')
         return channels, mapping
+
+    def _enqueue(self, action):
+        self._drain_result_q()
+        self._temp_action_ptr[0] = action
+        ret = self._action_q.write(self._temp_action_ptr)
+        if ret != 1:
+            raise RuntimeError('Action queue is full')
+        self._actions.add(action)
+
+    def _drain_result_q(self):
+        """Get actions from the result queue and discard them."""
+        while self._result_q.read(self._temp_action_ptr):
+            try:
+                self._actions.remove(self._temp_action_ptr[0])
+            except KeyError:
+                assert False
 
 
 class Mixer(_Base):
@@ -59,7 +94,6 @@ class Mixer(_Base):
         After that, the *buffer* must not be written to anymore.
 
         """
-        # TODO: drain result_q?
         channels, mapping = self._check_channels(channels, 'output')
         buffer = _ffi.from_buffer(buffer)
         _, samplesize = _sd._split(self.samplesize)
@@ -72,12 +106,8 @@ class Mixer(_Base):
             channels=channels,
             mapping=mapping,
         ))
-        # TODO: avoid code duplication with other functions:
-        if not self._action_q.write_available:
-            raise RuntimeError('Action queue is full')
-        ret = self._action_q.write(_ffi.new('struct action**', action))
-        assert ret == 1
-        self._actions.append(action)  # TODO: Better way to keep alive?
+        self._enqueue(action)
+        return action
 
     def play_ringbuffer(self, ringbuffer, channels=None, start=0,
                         allow_belated=True):
@@ -87,7 +117,6 @@ class Mixer(_Base):
         buffer's *elementsize*.
 
         """
-        # TODO: drain result_q?
         _, samplesize = _sd._split(self.samplesize)
         if channels is None:
             channels = ringbuffer.elementsize // samplesize
@@ -102,13 +131,8 @@ class Mixer(_Base):
             channels=channels,
             mapping=mapping,
         ))
-        if not self._action_q.write_available:
-            raise RuntimeError('Action queue is full')
-        ret = self._action_q.write(_ffi.new('struct action**', action))
-        assert ret == 1
-        self._actions.append(action)  # TODO: Better way to keep alive?
-        # TODO: block until playback has finished (optional)?
-        # TODO: return something that allows stopping playback?
+        self._enqueue(action)
+        return action
 
 
 class Recorder(_Base):
@@ -131,7 +155,6 @@ class Recorder(_Base):
         """Send a buffer to the callback to be recorded into.
 
         """
-        # TODO: drain result_q?
         channels, mapping = self._check_channels(channels, 'input')
         buffer = _ffi.from_buffer(buffer)
         samplesize, _ = _sd._split(self.samplesize)
@@ -144,11 +167,8 @@ class Recorder(_Base):
             channels=channels,
             mapping=mapping,
         ))
-        if not self._action_q.write_available:
-            raise RuntimeError('Action queue is full')
-        ret = self._action_q.write(_ffi.new('struct action**', action))
-        assert ret == 1
-        self._actions.append(action)  # TODO: Better way to keep alive?
+        self._enqueue(action)
+        return action
 
     def record_ringbuffer(self, ringbuffer, channels=None, start=0,
                           allow_belated=True):
@@ -158,9 +178,6 @@ class Recorder(_Base):
         buffer's *elementsize*.
 
         """
-        # TODO: drain result_q?
-
-        # TODO: avoid code duplication
         samplesize, _ = _sd._split(self.samplesize)
         if channels is None:
             channels = ringbuffer.elementsize // samplesize
@@ -175,13 +192,8 @@ class Recorder(_Base):
             channels=channels,
             mapping=mapping,
         ))
-        if not self._action_q.write_available:
-            raise RuntimeError('Action queue is full')
-        ret = self._action_q.write(_ffi.new('struct action**', action))
-        assert ret == 1
-        self._actions.append(action)  # TODO: Better way to keep alive?
-        # TODO: block until playback has finished (optional)?
-        # TODO: return something that allows stopping playback?
+        self._enqueue(action)
+        return action
 
 
 class MixerAndRecorder(Mixer, Recorder):
@@ -294,7 +306,7 @@ class RingBuffer(object):
         except TypeError:
             pass  # input is not a buffer
         if size < 0:
-            size, rest = divmod(len(data), self._ptr.elementSizeBytes)
+            size, rest = divmod(_ffi.sizeof(data), self._ptr.elementSizeBytes)
             if rest:
                 raise ValueError('data size must be multiple of elementsize')
         return _lib.PaUtil_ReadRingBuffer(self._ptr, data, size)

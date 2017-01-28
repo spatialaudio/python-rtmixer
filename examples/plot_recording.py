@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-from __future__ import division  # Only needed for Python 2.x
 import time
 
 import matplotlib.pyplot as plt
@@ -13,6 +12,7 @@ duration = 3
 samplerate = 48000
 blocksize = 0
 latency = 'low'
+sleeptime = 0.1
 
 buffer = np.zeros([int(duration * samplerate), channels],
                   dtype='float32', order='C')
@@ -22,12 +22,22 @@ t += start
 with rtmixer.Recorder(channels=channels, blocksize=blocksize,
                       samplerate=samplerate, latency=latency) as m:
     start += m.time
-    m.record_buffer(buffer, channels, start)
-    time.sleep(max(start - m.time, 0))
-    print('Recording ... ', end='', flush=True)
-    # TODO: wait for recording to actually finish
-    time.sleep(max(start + duration - m.time, 0))
-    print('done')
+    action = m.record_buffer(buffer, channels, start)
+    while True:
+        remaining = start - m.time
+        if remaining < sleeptime:
+            break
+        if remaining % 1 < sleeptime:
+            tick = int(remaining)
+        else:
+            tick = '.'
+        print(tick, end='', flush=True)
+        time.sleep(sleeptime)
+    print(' recording! ', end='', flush=True)
+    while action in m.actions:
+        print('.', end='', flush=True)
+        time.sleep(sleeptime)
+    print(' done')
     # TODO: check for xruns
 
 plt.plot(t, buffer)

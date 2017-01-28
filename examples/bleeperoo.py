@@ -25,7 +25,6 @@ amplitude_max = 0.15
 start_min = 0
 start_max = 10
 channels = None
-sleeptime = 5
 
 if duration_min < max(attack, release):
     raise ValueError('minimum duration is too short')
@@ -65,5 +64,6 @@ with rtmixer.Mixer(device=device, channels=channels, blocksize=blocksize,
         m.play_buffer(bleep,
                       channels=[r.randint(channels) + 1],
                       start=start_time + r.uniform(start_min, start_max))
-    # TODO: wait until the last bleep has finished
-    sd.sleep(int(1000 * (start_max + duration_max)))
+    while m.actions:
+        sd.sleep(100)
+    # TODO: check for xruns
