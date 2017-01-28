@@ -59,7 +59,7 @@ for _ in range(bleeps):
     bleeplist.append(bleep)
 
 with rtmixer.Mixer(device=device, channels=channels, blocksize=blocksize,
-                   samplerate=samplerate, latency=latency) as m:
+                   samplerate=samplerate, latency=latency, qsize=512) as m:
     start_time = m.time
     for bleep in bleeplist:
         m.play_buffer(bleep,

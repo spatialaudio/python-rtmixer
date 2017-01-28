@@ -8,11 +8,10 @@ from _rtmixer import ffi as _ffi, lib as _lib
 class _Base(_sd._StreamBase):
     """Base class for Mixer et al."""
 
-    def __init__(self, kind, **kwargs):
+    def __init__(self, kind, qsize=16, **kwargs):
         callback = _ffi.addressof(_lib, 'callback')
 
-        # TODO: parameter for ring buffer size
-        self._action_q = RingBuffer(_ffi.sizeof('struct action*'), 512)
+        self._action_q = RingBuffer(_ffi.sizeof('struct action*'), qsize)
         self._userdata = _ffi.new('struct state*', dict(
             action_q=self._action_q._ptr,
         ))
@@ -75,7 +74,7 @@ class Mixer(_Base):
         ))
         # TODO: avoid code duplication with other functions:
         if not self._action_q.write_available:
-            raise RuntimeError('Action queue is full!')
+            raise RuntimeError('Action queue is full')
         ret = self._action_q.write(_ffi.new('struct action**', action))
         assert ret == 1
         self._actions.append(action)  # TODO: Better way to keep alive?
@@ -104,7 +103,7 @@ class Mixer(_Base):
             mapping=mapping,
         ))
         if not self._action_q.write_available:
-            raise RuntimeError('Action queue is full!')
+            raise RuntimeError('Action queue is full')
         ret = self._action_q.write(_ffi.new('struct action**', action))
         assert ret == 1
         self._actions.append(action)  # TODO: Better way to keep alive?
@@ -146,7 +145,7 @@ class Recorder(_Base):
             mapping=mapping,
         ))
         if not self._action_q.write_available:
-            raise RuntimeError('Action queue is full!')
+            raise RuntimeError('Action queue is full')
         ret = self._action_q.write(_ffi.new('struct action**', action))
         assert ret == 1
         self._actions.append(action)  # TODO: Better way to keep alive?
@@ -177,7 +176,7 @@ class Recorder(_Base):
             mapping=mapping,
         ))
         if not self._action_q.write_available:
-            raise RuntimeError('Action queue is full!')
+            raise RuntimeError('Action queue is full')
         ret = self._action_q.write(_ffi.new('struct action**', action))
         assert ret == 1
         self._actions.append(action)  # TODO: Better way to keep alive?
