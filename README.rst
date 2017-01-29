@@ -21,9 +21,14 @@ Features:
 
 * play from buffer, play from ringbuffer
 
+* record into buffer, record into ringbuffer
+
 * multichannel support
 
 * all memory allocations/deallocations happen outside of the audio callback
+
+* NumPy arrays with data type 'float32' can be easily used (via the buffer
+  protocol) as long as they are C-contiguous
 
 Planned features:
 
@@ -34,10 +39,6 @@ Planned features:
 * meticulous reporting of overruns/underruns
 
 * loopback tests to verify correct operation and accurate latency values
-
-* optional NumPy support?
-
-* notification when playback is done?
 
 * playlist/queue?
 
