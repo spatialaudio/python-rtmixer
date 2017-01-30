@@ -21,6 +21,7 @@ enum actiontype
   PLAY_RINGBUFFER,
   RECORD_BUFFER,
   RECORD_RINGBUFFER,
+  CANCEL,
 };
 
 struct action
@@ -33,6 +34,7 @@ struct action
   union {
     float* const buffer;
     PaUtilRingBuffer* const ringbuffer;
+    struct action* action;  // Used in CANCEL
   };
   const frame_t total_frames;
   frame_t done_frames;

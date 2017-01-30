@@ -23,22 +23,29 @@ with rtmixer.Recorder(channels=channels, blocksize=blocksize,
                       samplerate=samplerate, latency=latency) as m:
     start += m.time
     action = m.record_buffer(buffer, channels, start)
-    while True:
-        remaining = start - m.time
-        if remaining < sleeptime:
-            break
-        if remaining % 1 < sleeptime:
-            tick = int(remaining)
-        else:
-            tick = '.'
-        print(tick, end='', flush=True)
-        time.sleep(sleeptime)
-    print(' recording! ', end='', flush=True)
-    while action in m.actions:
-        print('.', end='', flush=True)
-        time.sleep(sleeptime)
-    print(' done')
-    # TODO: check for xruns
+    try:
+        while True:
+            remaining = start - m.time
+            if remaining < sleeptime:
+                break
+            if remaining % 1 < sleeptime:
+                tick = int(remaining)
+            else:
+                tick = '.'
+            print(tick, end='', flush=True)
+            time.sleep(sleeptime)
+        print(' recording! (press Ctrl+C to stop)', end='', flush=True)
+        while action in m.actions:
+            print('.', end='', flush=True)
+            time.sleep(sleeptime)
+        print(' done.')
+    except KeyboardInterrupt:
+        m.cancel(action)
+        print(' canceled.')
+        m.wait(action)
+        buffer = buffer[:action.done_frames]
+        t = t[:action.done_frames]
+# TODO: check for xruns
 
 plt.plot(t, buffer)
 plt.xlabel('Time / seconds')

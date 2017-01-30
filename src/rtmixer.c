@@ -45,9 +45,29 @@ int callback(const void* input, void* output, frame_t frameCount
       ; PaUtil_ReadRingBuffer(state->action_q, &action, 1)
       ;)
   {
-    // TODO: check action type, remove things if necessary
+    // TODO: CANCEL with requested_time?
 
-    // Note: actions are added at the beginning of the list, because its easier:
+    if (action->type == CANCEL)
+    {
+      assert(action->action);
+
+      struct action** actionaddr = &(state->actions);
+      while (*actionaddr)
+      {
+        if (*actionaddr == action->action)
+        {
+          remove_action(actionaddr, state);
+          break;
+        }
+        actionaddr = &((*actionaddr)->next);
+      }
+      // If the action wasn't in the list, we don't care
+
+      remove_action(&action, state);  // Remove the CANCEL action itself
+      continue;
+    }
+
+    // Actions are added at the beginning of the list, because it's easier:
     action->next = state->actions;
     state->actions = action;
   }

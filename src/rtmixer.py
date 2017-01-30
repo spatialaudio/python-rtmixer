@@ -14,8 +14,12 @@ class _Base(_sd._StreamBase):
         self._action_q = RingBuffer(_ffi.sizeof('struct action*'), qsize)
         self._result_q = RingBuffer(_ffi.sizeof('struct action*'), qsize)
         self._userdata = _ffi.new('struct state*', dict(
+            input_channels=0,
+            output_channels=0,
+            samplerate=0,
             action_q=self._action_q._ptr,
             result_q=self._result_q._ptr,
+            actions=_ffi.NULL,
         ))
         _sd._StreamBase.__init__(
             self, kind=kind, dtype='float32',
@@ -30,6 +34,23 @@ class _Base(_sd._StreamBase):
         """The set of active "actions"."""
         self._drain_result_q()
         return self._actions
+
+    def cancel(self, action):
+        """Initiate stopping a running action.
+
+        This creates another action that is sent to the callback in
+        order to stop the given *action*.
+
+        This function typically returns before the *action* is actually
+        stopped.  Use `wait()` to wait until it's done.
+
+        """
+        cancel_action = _ffi.new('struct action*', dict(
+            type=_lib.CANCEL,
+            action=action,
+        ))
+        self._enqueue(cancel_action)
+        return cancel_action
 
     def wait(self, action, sleeptime=10):
         """Wait for *action* to be finished.
@@ -85,7 +106,6 @@ class Mixer(_Base):
 
         """
         _Base.__init__(self, kind='output', **kwargs)
-        self._userdata.input_channels = 0
         self._userdata.output_channels = self.channels
 
     def play_buffer(self, buffer, channels, start=0, allow_belated=True):
@@ -149,7 +169,6 @@ class Recorder(_Base):
         """
         _Base.__init__(self, kind='input', **kwargs)
         self._userdata.input_channels = self.channels
-        self._userdata.output_channels = 0
 
     def record_buffer(self, buffer, channels, start=0, allow_belated=True):
         """Send a buffer to the callback to be recorded into.
