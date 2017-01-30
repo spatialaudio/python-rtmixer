@@ -98,7 +98,7 @@ class Mixer(_Base):
         buffer = _ffi.from_buffer(buffer)
         _, samplesize = _sd._split(self.samplesize)
         action = _ffi.new('struct action*', dict(
-            actiontype=_lib.PLAY_BUFFER,
+            type=_lib.PLAY_BUFFER,
             allow_belated=allow_belated,
             requested_time=start,
             buffer=_ffi.cast('float*', buffer),
@@ -124,7 +124,7 @@ class Mixer(_Base):
         if ringbuffer.elementsize != samplesize * channels:
             raise ValueError('Incompatible elementsize')
         action = _ffi.new('struct action*', dict(
-            actiontype=_lib.PLAY_RINGBUFFER,
+            type=_lib.PLAY_RINGBUFFER,
             allow_belated=allow_belated,
             requested_time=start,
             ringbuffer=ringbuffer._ptr,
@@ -159,7 +159,7 @@ class Recorder(_Base):
         buffer = _ffi.from_buffer(buffer)
         samplesize, _ = _sd._split(self.samplesize)
         action = _ffi.new('struct action*', dict(
-            actiontype=_lib.RECORD_BUFFER,
+            type=_lib.RECORD_BUFFER,
             allow_belated=allow_belated,
             requested_time=start,
             buffer=_ffi.cast('float*', buffer),
@@ -185,7 +185,7 @@ class Recorder(_Base):
         if ringbuffer.elementsize != samplesize * channels:
             raise ValueError('Incompatible elementsize')
         action = _ffi.new('struct action*', dict(
-            actiontype=_lib.RECORD_RINGBUFFER,
+            type=_lib.RECORD_RINGBUFFER,
             allow_belated=allow_belated,
             requested_time=start,
             ringbuffer=ringbuffer._ptr,

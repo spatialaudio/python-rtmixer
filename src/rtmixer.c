@@ -60,14 +60,14 @@ int callback(const void* input, void* output, frame_t frameCount
     struct action* const action = *actionaddr;
     nextaddr = &(action->next);
 
-    const bool playing = action->actiontype == PLAY_BUFFER
-                      || action->actiontype == PLAY_RINGBUFFER;
-    const bool recording = action->actiontype == RECORD_BUFFER
-                        || action->actiontype == RECORD_RINGBUFFER;
-    const bool using_buffer = action->actiontype == PLAY_BUFFER
-                           || action->actiontype == RECORD_BUFFER;
-    const bool using_ringbuffer = action->actiontype == PLAY_RINGBUFFER
-                               || action->actiontype == RECORD_RINGBUFFER;
+    const bool playing = action->type == PLAY_BUFFER
+                      || action->type == PLAY_RINGBUFFER;
+    const bool recording = action->type == RECORD_BUFFER
+                        || action->type == RECORD_RINGBUFFER;
+    const bool using_buffer = action->type == PLAY_BUFFER
+                           || action->type == RECORD_BUFFER;
+    const bool using_ringbuffer = action->type == PLAY_RINGBUFFER
+                               || action->type == RECORD_RINGBUFFER;
     PaTime io_time = 0;
     if (playing)
     {
