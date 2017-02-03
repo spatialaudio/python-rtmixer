@@ -9,8 +9,9 @@
 
 #include "rtmixer.h"
 
-struct action** remove_action(struct action** addr, struct state* state)
+void remove_action(struct action** addr, struct state* state)
 {
+  assert(addr && *addr && state);
   struct action* action = *addr;
   *addr = action->next;  // Current action is removed from list
   action->next = NULL;
@@ -21,7 +22,6 @@ struct action** remove_action(struct action** addr, struct state* state)
     // TODO: do something? Stop callback? Log error (in "state")?
     printf("result queue is full\n");
   }
-  return addr;  // The same address, which now holds a new pointer
 }
 
 int callback(const void* input, void* output, frame_t frameCount
@@ -72,13 +72,10 @@ int callback(const void* input, void* output, frame_t frameCount
     state->actions = action;
   }
 
-  // Using pointer-to-pointer to be able to remove list elements
-  for (struct action ** actionaddr = &(state->actions), ** nextaddr = NULL
-      ; *actionaddr
-      ; actionaddr = nextaddr)
+  struct action** actionaddr = &(state->actions);
+  while (*actionaddr)
   {
     struct action* const action = *actionaddr;
-    nextaddr = &(action->next);
 
     const bool playing = action->type == PLAY_BUFFER
                       || action->type == PLAY_RINGBUFFER;
@@ -113,6 +110,7 @@ int callback(const void* input, void* output, frame_t frameCount
           // Due to inaccuracies in timeInfo, "diff" might have a small negative
           // value in a future block.  We don't count this as "belated" though:
           action->allow_belated = true;
+          actionaddr = &(action->next);
           continue;
         }
         // Re-calculate "diff" to propagate rounding errors
@@ -124,7 +122,7 @@ int callback(const void* input, void* output, frame_t frameCount
         if (!action->allow_belated)
         {
           action->actual_time = 0.0;  // a.k.a. "false"
-          nextaddr = remove_action(actionaddr, state);
+          remove_action(actionaddr, state);
           continue;
         }
         action->actual_time = io_time;
@@ -185,7 +183,8 @@ int callback(const void* input, void* output, frame_t frameCount
       }
       if (action->done_frames == action->total_frames)
       {
-        nextaddr = remove_action(actionaddr, state);
+        remove_action(actionaddr, state);
+        continue;
       }
     }
     else if (using_ringbuffer)
@@ -255,9 +254,11 @@ int callback(const void* input, void* output, frame_t frameCount
 
         // TODO: store some information in action?
 
-        nextaddr = remove_action(actionaddr, state);
+        remove_action(actionaddr, state);
+        continue;
       }
     }
+    actionaddr = &(action->next);
   }
   return paContinue;
 }
