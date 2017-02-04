@@ -129,16 +129,15 @@ int callback(const void* input, void* output, frame_t frameCount
       }
     }
 
-    float* target = NULL;
-    float* source = NULL;
+    float* device_data = NULL;
 
     if (playing)
     {
-      target = (float*)output + offset * state->output_channels;
+      device_data = (float*)output + offset * state->output_channels;
     }
     else if (recording)
     {
-      source = (float*)input + offset * state->input_channels;
+      device_data = (float*)input + offset * state->input_channels;
     }
 
     frame_t frames = 0;
@@ -155,30 +154,29 @@ int callback(const void* input, void* output, frame_t frameCount
         assert(frameCount > offset);
         frames = frameCount - offset;
       }
+
+      float* buffer = action->buffer + action->done_frames * action->channels;
+      action->done_frames += frames;
       if (playing)
       {
-        float* source = action->buffer + action->done_frames * action->channels;
-        action->done_frames += frames;
         while (frames--)
         {
           for (frame_t c = 0; c < action->channels; c++)
           {
-            target[action->mapping[c] - 1] += *source++;
+            device_data[action->mapping[c] - 1] += *buffer++;
           }
-          target += state->output_channels;
+          device_data += state->output_channels;
         }
       }
       else if (recording)
       {
-        float* target = action->buffer + action->done_frames * action->channels;
-        action->done_frames += frames;
         while (frames--)
         {
           for (frame_t c = 0; c < action->channels; c++)
           {
-            *target++ = source[action->mapping[c] - 1];
+            *buffer++ = device_data[action->mapping[c] - 1];
           }
-          source += state->input_channels;
+          device_data += state->input_channels;
         }
       }
       if (action->done_frames == action->total_frames)
@@ -207,17 +205,17 @@ int callback(const void* input, void* output, frame_t frameCount
         {
           for (frame_t c = 0; c < action->channels; c++)
           {
-            target[action->mapping[c] - 1] += *block1++;
+            device_data[action->mapping[c] - 1] += *block1++;
           }
-          target += state->output_channels;
+          device_data += state->output_channels;
         }
         while (size2--)
         {
           for (frame_t c = 0; c < action->channels; c++)
           {
-            target[action->mapping[c] - 1] += *block2++;
+            device_data[action->mapping[c] - 1] += *block2++;
           }
-          target += state->output_channels;
+          device_data += state->output_channels;
         }
         action->done_frames += (frame_t)totalsize;
         PaUtil_AdvanceRingBufferReadIndex(action->ringbuffer, totalsize);
@@ -232,17 +230,17 @@ int callback(const void* input, void* output, frame_t frameCount
         {
           for (frame_t c = 0; c < action->channels; c++)
           {
-             *block1++ = source[action->mapping[c] - 1];
+             *block1++ = device_data[action->mapping[c] - 1];
           }
-          source += state->input_channels;
+          device_data += state->input_channels;
         }
         while (size2--)
         {
           for (frame_t c = 0; c < action->channels; c++)
           {
-            *block2++ = source[action->mapping[c] - 1];
+            *block2++ = device_data[action->mapping[c] - 1];
           }
-          source += state->input_channels;
+          device_data += state->input_channels;
         }
         action->done_frames += (frame_t)totalsize;
         PaUtil_AdvanceRingBufferWriteIndex(action->ringbuffer, totalsize);
