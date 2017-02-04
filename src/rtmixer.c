@@ -1,6 +1,5 @@
 /* See ../rtmixer_build.py */
 
-#include <assert.h>  // for assert()
 #include <math.h>  // for llround()
 #include <stdbool.h>  // for bool, true, false
 
@@ -9,9 +8,19 @@
 
 #include "rtmixer.h"
 
+#ifdef NDEBUG
+#define CALLBACK_ASSERT(expr) ((void)(0))
+#else
+#define CALLBACK_ASSERT(expr) \
+  do { if (!(expr)) { \
+    printf("Failed assertion in audio callback: \"" #expr "\" (" __FILE__ \
+        ":%i)\n", __LINE__); \
+    return paAbort; \
+  }} while (false)
+#endif
+
 void remove_action(struct action** addr, struct state* state)
 {
-  assert(addr && *addr && state);
   struct action* action = *addr;
   *addr = action->next;  // Current action is removed from list
   action->next = NULL;
@@ -29,6 +38,7 @@ int callback(const void* input, void* output, frame_t frameCount
   , void* userData)
 {
   struct state* state = userData;
+  CALLBACK_ASSERT(state);
 
   memset(output, 0, sizeof(float) * state->output_channels * frameCount);
 
@@ -49,7 +59,7 @@ int callback(const void* input, void* output, frame_t frameCount
 
     if (action->type == CANCEL)
     {
-      assert(action->action);
+      CALLBACK_ASSERT(action->action);
 
       struct action** actionaddr = &(state->actions);
       while (*actionaddr)
@@ -148,7 +158,7 @@ int callback(const void* input, void* output, frame_t frameCount
     }
     if (frames + offset > frameCount)
     {
-      assert(frameCount > offset);
+      CALLBACK_ASSERT(frameCount > offset);
       frames = frameCount - offset;
     }
 
