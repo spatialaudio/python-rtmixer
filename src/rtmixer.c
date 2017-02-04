@@ -140,21 +140,20 @@ int callback(const void* input, void* output, frame_t frameCount
       device_data = (float*)input + offset * state->input_channels;
     }
 
-    frame_t frames = 0;
+    frame_t frames = action->total_frames - action->done_frames;
+
+    if (frameCount < frames)
+    {
+      frames = frameCount;
+    }
+    if (frames + offset > frameCount)
+    {
+      assert(frameCount > offset);
+      frames = frameCount - offset;
+    }
 
     if (using_buffer)
     {
-      frames = action->total_frames - action->done_frames;
-      if (frameCount < frames)
-      {
-        frames = frameCount;
-      }
-      if (frames + offset > frameCount)
-      {
-        assert(frameCount > offset);
-        frames = frameCount - offset;
-      }
-
       float* buffer = action->buffer + action->done_frames * action->channels;
       action->done_frames += frames;
       if (playing)
@@ -179,16 +178,9 @@ int callback(const void* input, void* output, frame_t frameCount
           device_data += state->input_channels;
         }
       }
-      if (action->done_frames == action->total_frames)
-      {
-        remove_action(actionaddr, state);
-        continue;
-      }
     }
     else if (using_ringbuffer)
     {
-      // TODO: continue to ignore action->total_frames?
-
       float* block1 = NULL;
       float* block2 = NULL;
       ring_buffer_size_t size1 = 0;
@@ -198,7 +190,7 @@ int callback(const void* input, void* output, frame_t frameCount
       if (playing)
       {
         totalsize = PaUtil_GetRingBufferReadRegions(action->ringbuffer
-          , (ring_buffer_size_t)(frameCount - offset)
+          , (ring_buffer_size_t)frames
           , (void**)&block1, &size1, (void**)&block2, &size2);
 
         while (size1--)
@@ -223,7 +215,7 @@ int callback(const void* input, void* output, frame_t frameCount
       else if (recording)
       {
         totalsize = PaUtil_GetRingBufferWriteRegions(action->ringbuffer
-          , (ring_buffer_size_t)(frameCount - offset)
+          , (ring_buffer_size_t)frames
           , (void**)&block1, &size1, (void**)&block2, &size2);
 
         while (size1--)
@@ -246,7 +238,7 @@ int callback(const void* input, void* output, frame_t frameCount
         PaUtil_AdvanceRingBufferWriteIndex(action->ringbuffer, totalsize);
       }
 
-      if (totalsize < frameCount - offset)
+      if (totalsize < frames)
       {
         // Ring buffer is empty or full
 
@@ -255,6 +247,12 @@ int callback(const void* input, void* output, frame_t frameCount
         remove_action(actionaddr, state);
         continue;
       }
+    }
+
+    if (action->done_frames == action->total_frames)
+    {
+      remove_action(actionaddr, state);
+      continue;
     }
     actionaddr = &(action->next);
   }

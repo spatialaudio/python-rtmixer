@@ -148,6 +148,7 @@ class Mixer(_Base):
             allow_belated=allow_belated,
             requested_time=start,
             ringbuffer=ringbuffer._ptr,
+            total_frames=_lib.ULONG_MAX,
             channels=channels,
             mapping=mapping,
         ))
@@ -208,6 +209,7 @@ class Recorder(_Base):
             allow_belated=allow_belated,
             requested_time=start,
             ringbuffer=ringbuffer._ptr,
+            total_frames=_lib.ULONG_MAX,
             channels=channels,
             mapping=mapping,
         ))
