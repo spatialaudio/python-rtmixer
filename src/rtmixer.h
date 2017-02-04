@@ -1,18 +1,3 @@
-// actions:
-//
-// * read from queue
-// * read from array
-// * write to queue
-// * write to array
-// * stop action (with and/or without time?)
-// * query xrun stats etc.
-// timestamp! start, duration (number of samples? unlimited?)
-// return values: actual start, actual duration (number of samples?)
-//   queue usage: store smallest available write/read size
-//   xruns during the runtime of the current action
-//
-// if queue is empty/full, stop playback/recording
-
 typedef unsigned long frame_t;
 
 enum actiontype
@@ -22,6 +7,7 @@ enum actiontype
   RECORD_BUFFER,
   RECORD_RINGBUFFER,
   CANCEL,
+  // TODO: action to query xrun stats etc.?
 };
 
 struct action
@@ -39,6 +25,8 @@ struct action
   const frame_t total_frames;
   frame_t done_frames;
   // TODO: something to store the result of the action?
+  // TODO: number of xruns during the runtime of the current action?
+  // TODO: queue usage: store smallest available write/read size?
   const frame_t channels;  // Size of the following array
   const frame_t mapping[];  // "flexible array member"
 };
