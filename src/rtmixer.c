@@ -89,22 +89,9 @@ int callback(const void* input, void* output, frame_t frameCount
 
     const bool playing = action->type == PLAY_BUFFER
                       || action->type == PLAY_RINGBUFFER;
-    const bool recording = action->type == RECORD_BUFFER
-                        || action->type == RECORD_RINGBUFFER;
-    const bool using_buffer = action->type == PLAY_BUFFER
-                           || action->type == RECORD_BUFFER;
-    const bool using_ringbuffer = action->type == PLAY_RINGBUFFER
-                               || action->type == RECORD_RINGBUFFER;
-    PaTime io_time = 0;
-    if (playing)
-    {
-      io_time = timeInfo->outputBufferDacTime;
-    }
-    if (recording)
-    {
-      io_time = timeInfo->inputBufferAdcTime;
-    }
 
+    PaTime io_time = playing ? timeInfo->outputBufferDacTime
+                             : timeInfo->inputBufferAdcTime;
     frame_t offset = 0;
 
     if (action->done_frames == 0)
@@ -139,17 +126,6 @@ int callback(const void* input, void* output, frame_t frameCount
       }
     }
 
-    float* device_data = NULL;
-
-    if (playing)
-    {
-      device_data = (float*)output + offset * state->output_channels;
-    }
-    else if (recording)
-    {
-      device_data = (float*)input + offset * state->input_channels;
-    }
-
     frame_t frames = action->total_frames - action->done_frames;
 
     if (frameCount < frames)
@@ -162,11 +138,15 @@ int callback(const void* input, void* output, frame_t frameCount
       frames = frameCount - offset;
     }
 
-    if (using_buffer)
+    float* device_data
+      = playing ? (float*)output + offset * state->output_channels
+                : (float*) input + offset * state->input_channels;
+
+    if (action->type == PLAY_BUFFER || action->type == RECORD_BUFFER)
     {
       float* buffer = action->buffer + action->done_frames * action->channels;
       action->done_frames += frames;
-      if (playing)
+      if (action->type == PLAY_BUFFER)
       {
         while (frames--)
         {
@@ -177,8 +157,10 @@ int callback(const void* input, void* output, frame_t frameCount
           device_data += state->output_channels;
         }
       }
-      else if (recording)
+      else
       {
+        CALLBACK_ASSERT(action->type == RECORD_BUFFER);
+
         while (frames--)
         {
           for (frame_t c = 0; c < action->channels; c++)
@@ -189,15 +171,18 @@ int callback(const void* input, void* output, frame_t frameCount
         }
       }
     }
-    else if (using_ringbuffer)
+    else
     {
+      CALLBACK_ASSERT(action->type ==   PLAY_RINGBUFFER
+                   || action->type == RECORD_RINGBUFFER);
+
       float* block1 = NULL;
       float* block2 = NULL;
       ring_buffer_size_t size1 = 0;
       ring_buffer_size_t size2 = 0;
       ring_buffer_size_t totalsize = 0;
 
-      if (playing)
+      if (action->type == PLAY_RINGBUFFER)
       {
         totalsize = PaUtil_GetRingBufferReadRegions(action->ringbuffer
           , (ring_buffer_size_t)frames
@@ -222,8 +207,10 @@ int callback(const void* input, void* output, frame_t frameCount
         action->done_frames += (frame_t)totalsize;
         PaUtil_AdvanceRingBufferReadIndex(action->ringbuffer, totalsize);
       }
-      else if (recording)
+      else
       {
+        CALLBACK_ASSERT(action->type == RECORD_RINGBUFFER);
+
         totalsize = PaUtil_GetRingBufferWriteRegions(action->ringbuffer
           , (ring_buffer_size_t)frames
           , (void**)&block1, &size1, (void**)&block2, &size2);
