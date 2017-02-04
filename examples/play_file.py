@@ -26,7 +26,11 @@ with sf.SoundFile(filename) as f:
         action = m.play_ringbuffer(q)
         while True:
             while q.write_available < reading_blocksize:
+                if action not in m.actions:
+                    break
                 sd.sleep(int(1000 * reading_blocksize / f.samplerate))
+            if action not in m.actions:
+                break
             size, buf1, buf2 = q.get_write_buffers(reading_blocksize)
             assert not buf2
             written = f.buffer_read_into(buf1, ctype='float')
@@ -34,4 +38,4 @@ with sf.SoundFile(filename) as f:
             if written < size:
                 break
         m.wait(action)
-        # TODO: check for xruns
+        # TODO: check for xruns and ringbuffer errors
