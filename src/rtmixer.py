@@ -35,7 +35,7 @@ class _Base(_sd._StreamBase):
         self._drain_result_q()
         return self._actions
 
-    def cancel(self, action):
+    def cancel(self, action, time=0, allow_belated=True):
         """Initiate stopping a running action.
 
         This creates another action that is sent to the callback in
@@ -47,6 +47,8 @@ class _Base(_sd._StreamBase):
         """
         cancel_action = _ffi.new('struct action*', dict(
             type=_lib.CANCEL,
+            allow_belated=allow_belated,
+            requested_time=time,
             action=action,
         ))
         self._enqueue(cancel_action)

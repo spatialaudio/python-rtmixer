@@ -55,29 +55,8 @@ int callback(const void* input, void* output, frame_t frameCount
       ; PaUtil_ReadRingBuffer(state->action_q, &action, 1)
       ;)
   {
-    // TODO: CANCEL with requested_time?
-
-    if (action->type == CANCEL)
-    {
-      CALLBACK_ASSERT(action->action);
-
-      struct action** actionaddr = &(state->actions);
-      while (*actionaddr)
-      {
-        if (*actionaddr == action->action)
-        {
-          remove_action(actionaddr, state);
-          break;
-        }
-        actionaddr = &((*actionaddr)->next);
-      }
-      // If the action wasn't in the list, we don't care
-
-      remove_action(&action, state);  // Remove the CANCEL action itself
-      continue;
-    }
-
-    // Actions are added at the beginning of the list, because it's easier:
+    // Actions are added at the beginning of the list, because CANCEL actions
+    // must come before the action they are cancelling.  Also, it's easier.
     action->next = state->actions;
     state->actions = action;
   }
@@ -87,8 +66,13 @@ int callback(const void* input, void* output, frame_t frameCount
   {
     struct action* const action = *actionaddr;
 
-    const bool playing = action->type == PLAY_BUFFER
-                      || action->type == PLAY_RINGBUFFER;
+    enum actiontype type = action->type;
+    if (type == CANCEL)
+    {
+      CALLBACK_ASSERT(action->action);
+      type = action->action->type;
+    }
+    const bool playing = type == PLAY_BUFFER || type == PLAY_RINGBUFFER;
 
     PaTime io_time = playing ? timeInfo->outputBufferDacTime
                              : timeInfo->inputBufferAdcTime;
@@ -124,6 +108,32 @@ int callback(const void* input, void* output, frame_t frameCount
         }
         action->actual_time = io_time;
       }
+    }
+
+    if (action->type == CANCEL)
+    {
+      for (struct action** i = &(action->next); *i; i = &((*i)->next))
+      {
+        if (*i == action->action)
+        {
+          struct action* delinquent = *i;
+
+          if (delinquent->done_frames + offset > delinquent->total_frames)
+          {
+            // TODO: stops on its own ... set some error state?
+          }
+          else
+          {
+            delinquent->total_frames = delinquent->done_frames + offset;
+          }
+          // TODO: save some informations to action->...?
+          break;
+        }
+      }
+      // TODO: what if the action to cancel wasn't found? set actual_time = 0.0?
+
+      remove_action(actionaddr, state);  // Remove the CANCEL action itself
+      continue;
     }
 
     frame_t frames = action->total_frames - action->done_frames;

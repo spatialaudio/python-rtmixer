@@ -22,7 +22,7 @@ struct action
     PaUtilRingBuffer* const ringbuffer;
     struct action* action;  // Used in CANCEL
   };
-  const frame_t total_frames;
+  frame_t total_frames;
   frame_t done_frames;
   // TODO: something to store the result of the action?
   // TODO: number of xruns during the runtime of the current action?
