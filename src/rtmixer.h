@@ -41,6 +41,6 @@ struct state
   struct action* actions;  // Singly linked list of actions
 };
 
-int callback(const void* input, void* output, frame_t frames
-  , const PaStreamCallbackTimeInfo* time, PaStreamCallbackFlags status
-  , void* userdata);
+int callback(const void* input, void* output, frame_t frameCount
+  , const PaStreamCallbackTimeInfo* timeInfo, PaStreamCallbackFlags statusFlags
+  , void* userData);
