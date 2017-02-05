@@ -13,7 +13,7 @@ class _Base(_sd._StreamBase):
 
         self._action_q = RingBuffer(_ffi.sizeof('struct action*'), qsize)
         self._result_q = RingBuffer(_ffi.sizeof('struct action*'), qsize)
-        self._userdata = _ffi.new('struct state*', dict(
+        self._state = _ffi.new('struct state*', dict(
             input_channels=0,
             output_channels=0,
             samplerate=0,
@@ -23,8 +23,8 @@ class _Base(_sd._StreamBase):
         ))
         _sd._StreamBase.__init__(
             self, kind=kind, dtype='float32',
-            callback=callback, userdata=self._userdata, **kwargs)
-        self._userdata.samplerate = self.samplerate
+            callback=callback, userdata=self._state, **kwargs)
+        self._state.samplerate = self.samplerate
 
         self._actions = set()
         self._temp_action_ptr = _ffi.new('struct action**')
@@ -106,7 +106,7 @@ class Mixer(_Base):
 
         """
         _Base.__init__(self, kind='output', **kwargs)
-        self._userdata.output_channels = self.channels
+        self._state.output_channels = self.channels
 
     def play_buffer(self, buffer, channels, start=0, allow_belated=True):
         """Send a buffer to the callback to be played back.
@@ -169,7 +169,7 @@ class Recorder(_Base):
 
         """
         _Base.__init__(self, kind='input', **kwargs)
-        self._userdata.input_channels = self.channels
+        self._state.input_channels = self.channels
 
     def record_buffer(self, buffer, channels, start=0, allow_belated=True):
         """Send a buffer to the callback to be recorded into.
@@ -230,8 +230,8 @@ class MixerAndRecorder(Mixer, Recorder):
 
         """
         _Base.__init__(self, kind='duplex', **kwargs)
-        self._userdata.input_channels = self.channels[0]
-        self._userdata.output_channels = self.channels[1]
+        self._state.input_channels = self.channels[0]
+        self._state.output_channels = self.channels[1]
 
 
 class RingBuffer(object):
