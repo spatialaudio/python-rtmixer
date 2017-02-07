@@ -74,5 +74,6 @@ ani = FuncAnimation(fig, update_plot, interval=interval, blit=True)
 with stream:
     elementsize = channels * stream.samplesize
     q = rtmixer.RingBuffer(elementsize, stepsize * qsize)
-    stream.record_ringbuffer(q)
+    action = stream.record_ringbuffer(q)
     plt.show()
+print('Input overflows:', action.stats.input_overflows)

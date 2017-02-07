@@ -23,4 +23,8 @@ with stream:
     stream.record_ringbuffer(q, start=start, allow_belated=False)
     stream.play_ringbuffer(q, start=start + delay, allow_belated=False)
     # TODO: check if start was successful
+    print('#' * 80)
+    print('press Return to quit')
+    print('#' * 80)
     input()
+# TODO: check xruns

@@ -45,7 +45,8 @@ with rtmixer.Recorder(channels=channels, blocksize=blocksize,
         m.wait(action)
         buffer = buffer[:action.done_frames]
         t = t[:action.done_frames]
-# TODO: check for xruns
+
+print('Input overflows during recording:', action.stats.input_overflows)
 
 plt.plot(t, buffer)
 plt.xlabel('Time / seconds')

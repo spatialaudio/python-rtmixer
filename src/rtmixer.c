@@ -33,6 +33,16 @@ void remove_action(struct action** addr, struct state* state)
   }
 }
 
+void get_stats(PaStreamCallbackFlags flags, struct stats* stats)
+{
+  ++stats->blocks;
+
+  if (flags & paInputUnderflow)  { ++stats->input_underflows; }
+  if (flags & paInputOverflow)   { ++stats->input_overflows; }
+  if (flags & paOutputUnderflow) { ++stats->output_underflows; }
+  if (flags & paOutputOverflow)  { ++stats->output_overflows; }
+}
+
 int callback(const void* input, void* output, frame_t frameCount
   , const PaStreamCallbackTimeInfo* timeInfo, PaStreamCallbackFlags statusFlags
   , void* userData)
@@ -42,14 +52,7 @@ int callback(const void* input, void* output, frame_t frameCount
 
   memset(output, 0, sizeof(float) * state->output_channels * frameCount);
 
-  if (statusFlags & paInputUnderflow)  { printf("Input underflow!\n"); }
-  if (statusFlags & paInputOverflow)   { printf("Input overflow!\n"); }
-  if (statusFlags & paOutputUnderflow) { printf("Output underflow!\n"); }
-  if (statusFlags & paOutputOverflow)  { printf("Output overflow!\n"); }
-
-  // TODO: store information about overflows/underflows
-
-  // TODO: check if main thread is still running?
+  get_stats(statusFlags, &(state->stats));
 
   for (struct action* action = NULL
       ; PaUtil_ReadRingBuffer(state->action_q, &action, 1)
@@ -144,6 +147,10 @@ int callback(const void* input, void* output, frame_t frameCount
       remove_action(actionaddr, state);  // Remove the CANCEL action itself
       continue;
     }
+
+    // Store buffer over-/underflow information
+
+    get_stats(statusFlags, &(action->stats));
 
     // Get number of remaining frames in the current block
 
