@@ -79,6 +79,8 @@ int callback(const void* input, void* output, frame_t frameCount
     }
     const bool playing = type == PLAY_BUFFER || type == PLAY_RINGBUFFER;
 
+    // Check if the action is due to start in the current block
+
     PaTime io_time = playing ? timeInfo->outputBufferDacTime
                              : timeInfo->inputBufferAdcTime;
     frame_t offset = 0;
@@ -115,6 +117,8 @@ int callback(const void* input, void* output, frame_t frameCount
       }
     }
 
+    // Handle CANCEL action
+
     if (action->type == CANCEL)
     {
       for (struct action** i = &(action->next); *i; i = &((*i)->next))
@@ -141,6 +145,8 @@ int callback(const void* input, void* output, frame_t frameCount
       continue;
     }
 
+    // Get number of remaining frames in the current block
+
     frame_t frames = action->total_frames - action->done_frames;
 
     if (frameCount < frames)
@@ -152,6 +158,8 @@ int callback(const void* input, void* output, frame_t frameCount
       CALLBACK_ASSERT(frameCount > offset);
       frames = frameCount - offset;
     }
+
+    // Shove audio data around
 
     float* device_data
       = playing ? (float*)output + offset * state->output_channels
@@ -260,6 +268,8 @@ int callback(const void* input, void* output, frame_t frameCount
         continue;
       }
     }
+
+    // Clean up, prepare next iteration
 
     if (action->done_frames == action->total_frames)
     {
