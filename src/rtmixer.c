@@ -57,7 +57,12 @@ int callback(const void* input, void* output, frame_t frameCount
   {
     // Actions are added at the beginning of the list, because CANCEL actions
     // must come before the action they are cancelling.  Also, it's easier.
-    action->next = state->actions;
+    struct action* i = action;
+    while (i->next)
+    {
+      i = i->next;
+    }
+    i->next = state->actions;
     state->actions = action;
   }
 
