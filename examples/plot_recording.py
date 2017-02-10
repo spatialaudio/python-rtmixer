@@ -48,6 +48,9 @@ with rtmixer.Recorder(channels=channels, blocksize=blocksize,
 
 print('Input overflows during recording:', action.stats.input_overflows)
 
-plt.plot(t, buffer)
-plt.xlabel('Time / seconds')
-plt.show()
+if len(buffer):
+    plt.plot(t, buffer)
+    plt.xlabel('Time / seconds')
+    plt.show()
+else:
+    print('Nothing was recorded.')
