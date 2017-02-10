@@ -19,7 +19,7 @@
   }} while (false)
 #endif
 
-void remove_action(struct action** addr, struct state* state)
+void remove_action(struct action** addr, const struct state* state)
 {
   struct action* action = *addr;
   *addr = action->next;  // Current action is removed from list
@@ -41,6 +41,11 @@ void get_stats(PaStreamCallbackFlags flags, struct stats* stats)
   if (flags & paInputOverflow)   { stats->input_overflows++; }
   if (flags & paOutputUnderflow) { stats->output_underflows++; }
   if (flags & paOutputOverflow)  { stats->output_overflows++; }
+}
+
+frame_t seconds2samples(PaTime time, double samplerate)
+{
+  return (frame_t) llround(time * samplerate);
 }
 
 int callback(const void* input, void* output, frame_t frameCount
@@ -82,21 +87,23 @@ int callback(const void* input, void* output, frame_t frameCount
     }
     const bool playing = type == PLAY_BUFFER || type == PLAY_RINGBUFFER;
 
-    // Check if the action is due to start in the current block
-
     PaTime io_time = playing ? timeInfo->outputBufferDacTime
                              : timeInfo->inputBufferAdcTime;
     frame_t offset = 0;
 
+    // Check if the action is due to start in the current block
+
     if (action->done_frames == 0)
     {
+      // This action has not yet been "active"
+
       PaTime diff = action->requested_time - io_time;
       if (diff >= 0.0)
       {
-        offset = (frame_t)llround(diff * state->samplerate);
+        offset = seconds2samples(diff, state->samplerate);
         if (offset >= frameCount)
         {
-          // We are too early!
+          // We are too early, let's continue in the next block!
 
           // Due to inaccuracies in timeInfo, "diff" might have a small negative
           // value in a future block.  We don't count this as "belated" though:
@@ -124,25 +131,69 @@ int callback(const void* input, void* output, frame_t frameCount
 
     if (action->type == CANCEL)
     {
+      // Search the following list items, not the preceding ones!
       for (struct action** i = &(action->next); *i; i = &((*i)->next))
       {
         if (*i == action->action)
         {
           struct action* delinquent = *i;
 
-          if (delinquent->done_frames + offset > delinquent->total_frames)
+          if (delinquent->done_frames == 0)
           {
-            // TODO: stops on its own ... set some error state?
+            // delinquent is not yet playing/recording
+
+            frame_t delinquent_offset = 0;
+            PaTime diff = delinquent->requested_time - io_time;
+            if (diff >= 0.0)
+            {
+              delinquent_offset = seconds2samples(diff, state->samplerate);
+              if (delinquent_offset >= offset)
+              {
+                // Removal is scheduled before playback/recording begins
+
+                // TODO: save some status information?
+                remove_action(i, state);
+                break;
+              }
+            }
+            else
+            {
+              if (!delinquent->allow_belated)
+              {
+                // TODO: save some status information?
+                break;  // The action will not be started, no need to cancel it
+              }
+            }
+
+            if (delinquent->total_frames + delinquent_offset > offset)
+            {
+              CALLBACK_ASSERT(offset >= delinquent_offset);
+              delinquent->total_frames = offset - delinquent_offset;
+            }
+            else
+            {
+              // TODO: stops on its own ... save some status information?
+            }
           }
           else
           {
-            delinquent->total_frames = delinquent->done_frames + offset;
+            CALLBACK_ASSERT(
+                delinquent->total_frames >= delinquent->done_frames);
+            if (delinquent->total_frames - delinquent->done_frames > offset)
+            {
+              delinquent->total_frames = delinquent->done_frames + offset;
+            }
+            else
+            {
+              // TODO: stops on its own ... save some status information?
+            }
           }
           // TODO: save some informations to action->...?
-          break;
+
+          break;  // We found the action, no need to keep searching
         }
       }
-      // TODO: what if the action to cancel wasn't found? set actual_time = 0.0?
+      // TODO: what if the action to cancel wasn't found?
 
       remove_action(actionaddr, state);  // Remove the CANCEL action itself
       continue;
