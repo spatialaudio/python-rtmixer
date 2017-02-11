@@ -1,0 +1,10 @@
+include LICENSE
+include *.rst
+include rtmixer_build.py
+include src/rtmixer.c src/rtmixer.h
+recursive-include doc *.rst *.py
+recursive-include examples *.py
+include portaudio/LICENSE.txt
+include portaudio/index.html
+include portaudio/src/common/pa_ringbuffer.h
+include portaudio/src/common/pa_memorybarrier.h
