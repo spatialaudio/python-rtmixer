@@ -52,7 +52,8 @@ ffibuilder.set_source(
     include_dirs=['src', 'portaudio/include', 'portaudio/src/common'],
     sources=['portaudio/src/common/pa_ringbuffer.c'],
     #extra_compile_args=['-Wconversion'],
-    #undef_macros=['NDEBUG'],
+    # TODO: release mode by default, option for using debug mode
+    undef_macros=['NDEBUG'],
 )
 
 if __name__ == '__main__':

@@ -154,6 +154,7 @@ int callback(const void* input, void* output, frame_t frameCount
 
     // Get number of remaining frames in the current block
 
+    CALLBACK_ASSERT(action->total_frames >= action->done_frames);
     frame_t frames = action->total_frames - action->done_frames;
 
     if (frameCount < frames)
@@ -182,6 +183,8 @@ int callback(const void* input, void* output, frame_t frameCount
         {
           for (frame_t c = 0; c < action->channels; c++)
           {
+            CALLBACK_ASSERT(action->mapping[c] >= 1);
+            CALLBACK_ASSERT(action->mapping[c] <= state->output_channels);
             device_data[action->mapping[c] - 1] += *buffer++;
           }
           device_data += state->output_channels;
@@ -195,6 +198,8 @@ int callback(const void* input, void* output, frame_t frameCount
         {
           for (frame_t c = 0; c < action->channels; c++)
           {
+            CALLBACK_ASSERT(action->mapping[c] >= 1);
+            CALLBACK_ASSERT(action->mapping[c] <= state->input_channels);
             *buffer++ = device_data[action->mapping[c] - 1];
           }
           device_data += state->input_channels;
@@ -217,11 +222,14 @@ int callback(const void* input, void* output, frame_t frameCount
         totalsize = PaUtil_GetRingBufferReadRegions(action->ringbuffer
           , (ring_buffer_size_t)frames
           , (void**)&block1, &size1, (void**)&block2, &size2);
+        CALLBACK_ASSERT(!totalsize || size1);
 
         while (size1--)
         {
           for (frame_t c = 0; c < action->channels; c++)
           {
+            CALLBACK_ASSERT(action->mapping[c] >= 1);
+            CALLBACK_ASSERT(action->mapping[c] <= state->output_channels);
             device_data[action->mapping[c] - 1] += *block1++;
           }
           device_data += state->output_channels;
@@ -244,12 +252,15 @@ int callback(const void* input, void* output, frame_t frameCount
         totalsize = PaUtil_GetRingBufferWriteRegions(action->ringbuffer
           , (ring_buffer_size_t)frames
           , (void**)&block1, &size1, (void**)&block2, &size2);
+        CALLBACK_ASSERT(!totalsize || size1);
 
         while (size1--)
         {
           for (frame_t c = 0; c < action->channels; c++)
           {
-             *block1++ = device_data[action->mapping[c] - 1];
+            CALLBACK_ASSERT(action->mapping[c] >= 1);
+            CALLBACK_ASSERT(action->mapping[c] <= state->input_channels);
+            *block1++ = device_data[action->mapping[c] - 1];
           }
           device_data += state->input_channels;
         }
