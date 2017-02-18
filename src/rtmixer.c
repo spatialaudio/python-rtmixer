@@ -35,12 +35,12 @@ void remove_action(struct action** addr, struct state* state)
 
 void get_stats(PaStreamCallbackFlags flags, struct stats* stats)
 {
-  ++stats->blocks;
+  stats->blocks++;
 
-  if (flags & paInputUnderflow)  { ++stats->input_underflows; }
-  if (flags & paInputOverflow)   { ++stats->input_overflows; }
-  if (flags & paOutputUnderflow) { ++stats->output_underflows; }
-  if (flags & paOutputOverflow)  { ++stats->output_overflows; }
+  if (flags & paInputUnderflow)  { stats->input_underflows++; }
+  if (flags & paInputOverflow)   { stats->input_overflows++; }
+  if (flags & paOutputUnderflow) { stats->output_underflows++; }
+  if (flags & paOutputOverflow)  { stats->output_overflows++; }
 }
 
 int callback(const void* input, void* output, frame_t frameCount
