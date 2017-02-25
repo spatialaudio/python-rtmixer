@@ -16,7 +16,6 @@ setup(
     setup_requires=['CFFI>=1.4.0'],
     cffi_modules=['rtmixer_build.py:ffibuilder'],
     install_requires=['sounddevice>0.3.6'],
-    extras_require={'NumPy': ['NumPy']},
     author='Matthias Geier',
     author_email='Matthias.Geier@gmail.com',
     description='Reliable low-latency audio playback and recording',
