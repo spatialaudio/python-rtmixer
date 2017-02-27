@@ -327,7 +327,7 @@ int callback(const void* input, void* output, frame_t frameCount
         PaUtil_AdvanceRingBufferWriteIndex(action->ringbuffer, totalsize);
       }
 
-      if (totalsize < frames)
+      if (totalsize < (ring_buffer_size_t)frames)
       {
         // Ring buffer is empty or full
 
