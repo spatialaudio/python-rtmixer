@@ -4,7 +4,9 @@ __version__ = '0.0.0'
 
 import sounddevice as _sd
 from pa_ringbuffer import RingBuffer
+from pa_ringbuffer import link_c_functions as _link_c_functions
 from _rtmixer import ffi as _ffi, lib as _lib
+_link_c_functions(_ffi, _lib)
 
 
 class _Base(_sd._StreamBase):
@@ -19,8 +21,10 @@ class _Base(_sd._StreamBase):
             input_channels=0,
             output_channels=0,
             samplerate=0,
-            action_q=self._action_q._ptr,
-            result_q=self._result_q._ptr,
+            action_q=_ffi.cast('struct PaUtilRingBuffer *',
+                               self._action_q._ptr),
+            result_q=_ffi.cast('struct PaUtilRingBuffer *',
+                               self._result_q._ptr),
             actions=_ffi.NULL,
         ))
         _sd._StreamBase.__init__(
@@ -151,7 +155,8 @@ class Mixer(_Base):
             type=_lib.PLAY_RINGBUFFER,
             allow_belated=allow_belated,
             requested_time=start,
-            ringbuffer=ringbuffer._ptr,
+            ringbuffer=_ffi.cast('struct PaUtilRingBuffer *',
+                                 ringbuffer._ptr),
             total_frames=_lib.ULONG_MAX,
             channels=channels,
             mapping=mapping,
@@ -212,7 +217,8 @@ class Recorder(_Base):
             type=_lib.RECORD_RINGBUFFER,
             allow_belated=allow_belated,
             requested_time=start,
-            ringbuffer=ringbuffer._ptr,
+            ringbuffer=_ffi.cast('struct PaUtilRingBuffer *',
+                                 ringbuffer._ptr),
             total_frames=_lib.ULONG_MAX,
             channels=channels,
             mapping=mapping,
