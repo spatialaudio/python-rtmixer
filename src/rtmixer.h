@@ -1,3 +1,9 @@
+/* From portaudio.h: */
+typedef double PaTime;
+typedef struct PaStreamCallbackTimeInfo PaStreamCallbackTimeInfo;
+typedef unsigned long PaStreamCallbackFlags;
+/* End of declarations from portaudio.h */
+
 typedef unsigned long frame_t;
 
 enum actiontype
