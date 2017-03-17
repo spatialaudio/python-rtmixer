@@ -3,10 +3,9 @@
 __version__ = '0.0.0'
 
 import sounddevice as _sd
-from pa_ringbuffer import RingBuffer
 from pa_ringbuffer import link as _link
 from _rtmixer import ffi as _ffi, lib as _lib
-_link(_ffi, _lib)
+RingBuffer = _link(_ffi, _lib)
 
 
 class _Base(_sd._StreamBase):
