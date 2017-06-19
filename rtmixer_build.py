@@ -18,7 +18,7 @@ ffibuilder.cdef(open('src/rtmixer.h').read())
 ffibuilder.set_source(
     '_rtmixer',
     RINGBUFFER_CDEF + open('src/rtmixer.c').read(),
-    include_dirs=['src'],
+    include_dirs=['src', 'portaudio/include'],
     sources=['portaudio/src/common/pa_ringbuffer.c'],
     #extra_compile_args=['-Wconversion'],
     # TODO: release mode by default, option for using debug mode

@@ -2,28 +2,8 @@
 
 #include <math.h>  // for llround()
 #include <stdbool.h>  // for bool, true, false
-
+#include <portaudio.h>
 #include "rtmixer.h"
-
-/* From portaudio.h: */
-typedef struct PaStreamCallbackTimeInfo{
-    PaTime inputBufferAdcTime;
-    PaTime currentTime;
-    PaTime outputBufferDacTime;
-} PaStreamCallbackTimeInfo;
-typedef unsigned long PaStreamCallbackFlags;
-#define paInputUnderflow   ((PaStreamCallbackFlags) 0x00000001)
-#define paInputOverflow    ((PaStreamCallbackFlags) 0x00000002)
-#define paOutputUnderflow  ((PaStreamCallbackFlags) 0x00000004)
-#define paOutputOverflow   ((PaStreamCallbackFlags) 0x00000008)
-#define paPrimingOutput    ((PaStreamCallbackFlags) 0x00000010)
-typedef enum PaStreamCallbackResult
-{
-    paContinue=0,
-    paComplete=1,
-    paAbort=2
-} PaStreamCallbackResult;
-/* End of declarations from portaudio.h */
 
 #ifdef NDEBUG
 #define CALLBACK_ASSERT(expr) ((void)(0))
