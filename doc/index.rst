@@ -11,6 +11,16 @@ API Documentation
    :members:
    :undoc-members:
 
+.. autofunction:: rtmixer.create_ringbuffer
+
+.. autoclass:: rtmixer.RingBufferReader
+   :members:
+   :inherited-members:
+
+.. autoclass:: rtmixer.RingBufferWriter
+   :members:
+   :inherited-members:
+
 .. only:: html
 
    Index
