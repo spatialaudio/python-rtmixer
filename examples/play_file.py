@@ -21,7 +21,7 @@ with sf.SoundFile(filename) as f:
         q = rtmixer.RingBuffer(elementsize, reading_blocksize * reading_qsize)
         # Pre-fill ringbuffer:
         _, buf, _ = q.get_write_buffers(reading_blocksize * reading_qsize)
-        written = f.buffer_read_into(buf, ctype='float')
+        written = f.buffer_read_into(buf, dtype='float32')
         q.advance_write_index(written)
         action = m.play_ringbuffer(q)
         while True:
@@ -33,7 +33,7 @@ with sf.SoundFile(filename) as f:
                 break
             size, buf1, buf2 = q.get_write_buffers(reading_blocksize)
             assert not buf2
-            written = f.buffer_read_into(buf1, ctype='float')
+            written = f.buffer_read_into(buf1, dtype='float32')
             q.advance_write_index(written)
             if written < size:
                 break
