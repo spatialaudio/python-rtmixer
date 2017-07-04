@@ -13,9 +13,16 @@ setup(
     version=__version__,
     package_dir={'': 'src'},
     py_modules=['rtmixer'],
-    setup_requires=['CFFI>=1.4.0', 'pa_ringbuffer'],
     cffi_modules=['rtmixer_build.py:ffibuilder'],
-    install_requires=['sounddevice>0.3.6', 'pa_ringbuffer'],
+    setup_requires=[
+        'CFFI>=1.4.0',
+        'pa_ringbuffer',  # for cdef()
+    ],
+    install_requires=[
+        'CFFI>=1',  # for _cffi_backend
+        'pa_ringbuffer',  # for init()
+        'sounddevice>0.3.6',
+    ],
     author='Matthias Geier',
     author_email='Matthias.Geier@gmail.com',
     description='Reliable low-latency audio playback and recording',
