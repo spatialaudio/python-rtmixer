@@ -3,9 +3,9 @@
 __version__ = '0.0.0'
 
 import sounddevice as _sd
-from pa_ringbuffer import init as _init_ringbuffer
+from pa_ringbuffer import init as _init
 from _rtmixer import ffi as _ffi, lib as _lib
-RingBuffer = _init_ringbuffer(_ffi, _lib)
+create_ringbuffer, RingBufferReader, RingBufferWriter = _init(_ffi, _lib)
 
 
 class _Base(_sd._StreamBase):
@@ -14,14 +14,16 @@ class _Base(_sd._StreamBase):
     def __init__(self, kind, qsize=16, **kwargs):
         callback = _ffi.addressof(_lib, 'callback')
 
-        self._action_q = RingBuffer(_ffi.sizeof('struct action*'), qsize)
-        self._result_q = RingBuffer(_ffi.sizeof('struct action*'), qsize)
+        action_ptr = create_ringbuffer(_ffi.sizeof('struct action*'), qsize)
+        result_ptr = create_ringbuffer(_ffi.sizeof('struct action*'), qsize)
+        self._action_q = RingBufferWriter(action_ptr)
+        self._result_q = RingBufferReader(result_ptr)
         self._state = _ffi.new('struct state*', dict(
             input_channels=0,
             output_channels=0,
             samplerate=0,
-            action_q=self._action_q._ptr,
-            result_q=self._result_q._ptr,
+            action_q=action_ptr,
+            result_q=result_ptr,
             actions=_ffi.NULL,
         ))
         _sd._StreamBase.__init__(
@@ -144,15 +146,15 @@ class Mixer(_Base):
         """
         _, samplesize = _sd._split(self.samplesize)
         if channels is None:
-            channels = ringbuffer.elementsize // samplesize
+            channels = ringbuffer.elementSizeBytes // samplesize
         channels, mapping = self._check_channels(channels, 'output')
-        if ringbuffer.elementsize != samplesize * channels:
+        if ringbuffer.elementSizeBytes != samplesize * channels:
             raise ValueError('Incompatible elementsize')
         action = _ffi.new('struct action*', dict(
             type=_lib.PLAY_RINGBUFFER,
             allow_belated=allow_belated,
             requested_time=start,
-            ringbuffer=ringbuffer._ptr,
+            ringbuffer=ringbuffer,
             total_frames=_lib.ULONG_MAX,
             channels=channels,
             mapping=mapping,
@@ -205,15 +207,15 @@ class Recorder(_Base):
         """
         samplesize, _ = _sd._split(self.samplesize)
         if channels is None:
-            channels = ringbuffer.elementsize // samplesize
+            channels = ringbuffer.elementSizeBytes // samplesize
         channels, mapping = self._check_channels(channels, 'input')
-        if ringbuffer.elementsize != samplesize * channels:
+        if ringbuffer.elementSizeBytes != samplesize * channels:
             raise ValueError('Incompatible elementsize')
         action = _ffi.new('struct action*', dict(
             type=_lib.RECORD_RINGBUFFER,
             allow_belated=allow_belated,
             requested_time=start,
-            ringbuffer=ringbuffer._ptr,
+            ringbuffer=ringbuffer,
             total_frames=_lib.ULONG_MAX,
             channels=channels,
             mapping=mapping,
