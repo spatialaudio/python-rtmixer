@@ -18,10 +18,10 @@ stream = rtmixer.MixerAndRecorder(
 with stream:
     samplesize = 4
     assert {samplesize} == set(stream.samplesize)
-    q = rtmixer.RingBuffer(samplesize * channels, qsize)
+    rb = rtmixer.create_ringbuffer(samplesize * channels, qsize)
     start = stream.time + safety
-    stream.record_ringbuffer(q, start=start, allow_belated=False)
-    stream.play_ringbuffer(q, start=start + delay, allow_belated=False)
+    stream.record_ringbuffer(rb, start=start, allow_belated=False)
+    stream.play_ringbuffer(rb, start=start + delay, allow_belated=False)
     # TODO: check if start was successful
     print('#' * 80)
     print('press Return to quit')

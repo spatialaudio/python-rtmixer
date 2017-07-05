@@ -14,11 +14,9 @@ API Documentation
 .. autofunction:: rtmixer.create_ringbuffer
 
 .. autoclass:: rtmixer.RingBufferReader
-   :members:
    :inherited-members:
 
 .. autoclass:: rtmixer.RingBufferWriter
-   :members:
    :inherited-members:
 
 .. only:: html

@@ -146,15 +146,15 @@ class Mixer(_Base):
         """
         _, samplesize = _sd._split(self.samplesize)
         if channels is None:
-            channels = ringbuffer.elementsize // samplesize
+            channels = ringbuffer.elementSizeBytes // samplesize
         channels, mapping = self._check_channels(channels, 'output')
-        if ringbuffer.elementsize != samplesize * channels:
+        if ringbuffer.elementSizeBytes != samplesize * channels:
             raise ValueError('Incompatible elementsize')
         action = _ffi.new('struct action*', dict(
             type=_lib.PLAY_RINGBUFFER,
             allow_belated=allow_belated,
             requested_time=start,
-            ringbuffer=ringbuffer._ptr,
+            ringbuffer=ringbuffer,
             total_frames=_lib.ULONG_MAX,
             channels=channels,
             mapping=mapping,
