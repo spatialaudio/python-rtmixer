@@ -11,6 +11,9 @@ API Documentation
    :members:
    :undoc-members:
 
+.. autoclass:: rtmixer.RingBuffer
+   :inherited-members:
+
 .. only:: html
 
    Index

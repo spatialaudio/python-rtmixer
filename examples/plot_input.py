@@ -19,16 +19,16 @@ latency = 'low'
 device = None
 samplerate = None
 downsample = 10  # Plot every ...th frame
-qsize = 8  # Power of 2
+rb_size = 8  # Power of 2
 channels = 2
 
 
 def update_plot(frame):
     global plotdata
-    while q.read_available >= stepsize:
+    while rb.read_available >= stepsize:
         # The ring buffer's size is a multiple of stepsize, therefore we know
         # that the data is contiguous in memory (= the 2nd buffer is empty):
-        read, buf1, buf2 = q.get_read_buffers(stepsize)
+        read, buf1, buf2 = rb.get_read_buffers(stepsize)
         assert read == stepsize
         assert not buf2
         buffer = np.frombuffer(buf1, dtype='float32')
@@ -39,7 +39,7 @@ def update_plot(frame):
         shift = len(buffer)
         plotdata = np.roll(plotdata, -shift, axis=0)
         plotdata[-shift:, :] = buffer
-        q.advance_read_index(stepsize)
+        rb.advance_read_index(stepsize)
     for column, line in enumerate(lines):
         line.set_ydata(plotdata[:, column])
     return lines
@@ -73,7 +73,7 @@ stream = rtmixer.Recorder(
 ani = FuncAnimation(fig, update_plot, interval=interval, blit=True)
 with stream:
     elementsize = channels * stream.samplesize
-    q = rtmixer.RingBuffer(elementsize, stepsize * qsize)
-    action = stream.record_ringbuffer(q)
+    rb = rtmixer.RingBuffer(elementsize, stepsize * rb_size)
+    action = stream.record_ringbuffer(rb)
     plt.show()
 print('Input overflows:', action.stats.input_overflows)

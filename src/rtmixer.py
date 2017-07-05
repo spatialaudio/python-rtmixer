@@ -20,8 +20,8 @@ class _Base(_sd._StreamBase):
             input_channels=0,
             output_channels=0,
             samplerate=0,
-            action_q=self._action_q._ptr,
-            result_q=self._result_q._ptr,
+            action_q=self._action_q.ptr,
+            result_q=self._result_q.ptr,
             actions=_ffi.NULL,
         ))
         _sd._StreamBase.__init__(
@@ -144,15 +144,15 @@ class Mixer(_Base):
         """
         _, samplesize = _sd._split(self.samplesize)
         if channels is None:
-            channels = ringbuffer.elementsize // samplesize
+            channels = ringbuffer.ptr.elementSizeBytes // samplesize
         channels, mapping = self._check_channels(channels, 'output')
-        if ringbuffer.elementsize != samplesize * channels:
+        if ringbuffer.ptr.elementSizeBytes != samplesize * channels:
             raise ValueError('Incompatible elementsize')
         action = _ffi.new('struct action*', dict(
             type=_lib.PLAY_RINGBUFFER,
             allow_belated=allow_belated,
             requested_time=start,
-            ringbuffer=ringbuffer._ptr,
+            ringbuffer=ringbuffer.ptr,
             total_frames=_lib.ULONG_MAX,
             channels=channels,
             mapping=mapping,
@@ -205,15 +205,15 @@ class Recorder(_Base):
         """
         samplesize, _ = _sd._split(self.samplesize)
         if channels is None:
-            channels = ringbuffer.elementsize // samplesize
+            channels = ringbuffer.ptr.elementSizeBytes // samplesize
         channels, mapping = self._check_channels(channels, 'input')
-        if ringbuffer.elementsize != samplesize * channels:
+        if ringbuffer.ptr.elementSizeBytes != samplesize * channels:
             raise ValueError('Incompatible elementsize')
         action = _ffi.new('struct action*', dict(
             type=_lib.RECORD_RINGBUFFER,
             allow_belated=allow_belated,
             requested_time=start,
-            ringbuffer=ringbuffer._ptr,
+            ringbuffer=ringbuffer.ptr,
             total_frames=_lib.ULONG_MAX,
             channels=channels,
             mapping=mapping,
