@@ -10,7 +10,7 @@ latency = 'low'
 samplerate = 48000
 safety = 0.1  # Shouldn't be less than the duration of an audio block
 
-qsize = 2**math.ceil(math.log2((delay + safety) * samplerate))
+rb_size = 2**math.ceil(math.log2((delay + safety) * samplerate))
 
 stream = rtmixer.MixerAndRecorder(
     channels=channels, blocksize=blocksize, samplerate=samplerate,
@@ -18,10 +18,10 @@ stream = rtmixer.MixerAndRecorder(
 with stream:
     samplesize = 4
     assert {samplesize} == set(stream.samplesize)
-    q = rtmixer.RingBuffer(samplesize * channels, qsize)
+    rb = rtmixer.RingBuffer(samplesize * channels, rb_size)
     start = stream.time + safety
-    stream.record_ringbuffer(q, start=start, allow_belated=False)
-    stream.play_ringbuffer(q, start=start + delay, allow_belated=False)
+    stream.record_ringbuffer(rb, start=start, allow_belated=False)
+    stream.play_ringbuffer(rb, start=start + delay, allow_belated=False)
     # TODO: check if start was successful
     print('#' * 80)
     print('press Return to quit')
