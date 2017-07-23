@@ -91,7 +91,7 @@ class _Base(_sd._StreamBase):
 
     def _drain_result_q(self):
         """Get actions from the result queue and discard them."""
-        while self._result_q.read(self._temp_action_ptr):
+        while self._result_q.readinto(self._temp_action_ptr):
             try:
                 self._actions.remove(self._temp_action_ptr[0])
             except KeyError:
