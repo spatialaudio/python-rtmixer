@@ -8,8 +8,21 @@ API Documentation
 -----------------
 
 .. automodule:: rtmixer
+
+.. autoclass:: Mixer
+   :members: play_buffer, play_ringbuffer, actions, cancel, wait
+   :undoc-members:
+
+.. autoclass:: Recorder
    :members:
    :undoc-members:
+
+.. autoclass:: MixerAndRecorder
+   :members:
+   :undoc-members:
+
+.. autoclass:: RingBuffer
+   :inherited-members:
 
 .. only:: html
 

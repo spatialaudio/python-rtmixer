@@ -1,5 +1,8 @@
-"""Reliable low-latency audio playback and recording."""
+"""Reliable low-latency audio playback and recording.
 
+http://python-rtmixer.readthedocs.io/
+
+"""
 __version__ = '0.0.0'
 
 import sounddevice as _sd
@@ -45,7 +48,8 @@ class _Base(_sd._StreamBase):
         order to stop the given *action*.
 
         This function typically returns before the *action* is actually
-        stopped.  Use `wait()` to wait until it's done.
+        stopped.  Use `wait()` (on either one of the two actions) to
+        wait until it's done.
 
         """
         cancel_action = _ffi.new('struct action*', dict(
@@ -99,17 +103,22 @@ class _Base(_sd._StreamBase):
 
 
 class Mixer(_Base):
-    """PortAudio output stream for realtime mixing."""
+    """PortAudio output stream for realtime mixing.
+
+    Takes the same keyword arguments as `sounddevice.OutputStream`,
+    except *callback* (a callback function implemented in C is used
+    internally) and *dtype* (which is always ``'float32'``).
+
+    Uses default values from `sounddevice.default` (except *dtype*,
+    which is always ``'float32'``).
+
+    Has the same methods and attributes as `sounddevice.OutputStream`
+    (except :meth:`~sounddevice.Stream.write` and
+    :attr:`~sounddevice.Stream.write_available`), plus the following:
+
+    """
 
     def __init__(self, **kwargs):
-        """Create a realtime mixer object.
-
-        Takes the same keyword arguments as `sounddevice.OutputStream`,
-        except *callback* and *dtype*.
-
-        Uses default values from `sounddevice.default`.
-
-        """
         _Base.__init__(self, kind='output', **kwargs)
         self._state.output_channels = self.channels
 
@@ -136,10 +145,10 @@ class Mixer(_Base):
 
     def play_ringbuffer(self, ringbuffer, channels=None, start=0,
                         allow_belated=True):
-        """Send a ring buffer to the callback to be played back.
+        """Send a `RingBuffer` to the callback to be played back.
 
         By default, the number of channels is obtained from the ring
-        buffer's *elementsize*.
+        buffer's :attr:`~RingBuffer.elementsize`.
 
         """
         _, samplesize = _sd._split(self.samplesize)
@@ -162,17 +171,21 @@ class Mixer(_Base):
 
 
 class Recorder(_Base):
-    """PortAudio input stream for realtime recording."""
+    """PortAudio input stream for realtime recording.
+
+    Takes the same keyword arguments as `sounddevice.InputStream`,
+    except *callback* (a callback function implemented in C is used
+    internally) and *dtype* (which is always ``'float32'``).
+
+    Uses default values from `sounddevice.default` (except *dtype*,
+    which is always ``'float32'``).
+
+    Has the same methods and attributes as `Mixer`, except that
+    `play_buffer()` and `play_ringbuffer()` are replaced by:
+
+    """
 
     def __init__(self, **kwargs):
-        """Create a realtime recording object.
-
-        Takes the same keyword arguments as `sounddevice.InputStream`,
-        except *callback* and *dtype*.
-
-        Uses default values from `sounddevice.default`.
-
-        """
         _Base.__init__(self, kind='input', **kwargs)
         self._state.input_channels = self.channels
 
@@ -197,10 +210,10 @@ class Recorder(_Base):
 
     def record_ringbuffer(self, ringbuffer, channels=None, start=0,
                           allow_belated=True):
-        """Send a ring buffer to the callback to be recorded into.
+        """Send a `RingBuffer` to the callback to be recorded into.
 
         By default, the number of channels is obtained from the ring
-        buffer's *elementsize*.
+        buffer's :attr:`~RingBuffer.elementsize`.
 
         """
         samplesize, _ = _sd._split(self.samplesize)
@@ -223,17 +236,20 @@ class Recorder(_Base):
 
 
 class MixerAndRecorder(Mixer, Recorder):
-    """PortAudio stream for realtime mixing and recording."""
+    """PortAudio stream for realtime mixing and recording.
+
+    Takes the same keyword arguments as `sounddevice.Stream`, except
+    *callback* (a callback function implemented in C is used internally)
+    and *dtype* (which is always ``'float32'``).
+
+    Uses default values from `sounddevice.default` (except *dtype*,
+    which is always ``'float32'``).
+
+    Inherits all methods and attributes from `Mixer` and `Recorder`.
+
+    """
 
     def __init__(self, **kwargs):
-        """Create a realtime mixer object with recording capabilities.
-
-        Takes the same keyword arguments as `sounddevice.Stream`,
-        except *callback* and *dtype*.
-
-        Uses default values from `sounddevice.default`.
-
-        """
         _Base.__init__(self, kind='duplex', **kwargs)
         self._state.input_channels = self.channels[0]
         self._state.output_channels = self.channels[1]

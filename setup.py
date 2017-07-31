@@ -29,7 +29,7 @@ setup(
     long_description=open('README.rst').read(),
     license='MIT',
     keywords='sound audio PortAudio realtime low-latency'.split(),
-    #url='http://python-rtmixer.readthedocs.io/',
+    url='http://python-rtmixer.readthedocs.io/',
     platforms='any',
     classifiers=[
         'License :: OSI Approved :: MIT License',

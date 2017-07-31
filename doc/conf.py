@@ -1,36 +1,18 @@
 from subprocess import check_output
 
-needs_sphinx = '1.3'  # for sphinx.ext.napoleon
-
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.intersphinx',
     'sphinx.ext.viewcode',
-    'sphinx.ext.napoleon',  # support for NumPy-style docstrings
 ]
-
-autoclass_content = 'init'
-autodoc_member_order = 'bysource'
-
-napoleon_google_docstring = False
-napoleon_numpy_docstring = True
-napoleon_include_private_with_doc = False
-napoleon_include_special_with_doc = False
-napoleon_use_admonition_for_examples = False
-napoleon_use_admonition_for_notes = False
-napoleon_use_admonition_for_references = False
-napoleon_use_ivar = False
-napoleon_use_param = False
-napoleon_use_rtype = False
 
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
     'numpy': ('https://docs.scipy.org/doc/numpy/', None),
-    'sounddevice': ('http://python-sounddevice.readthedocs.io/en/latest/',
-                    None),
+    'sounddevice':
+        ('http://python-sounddevice.readthedocs.io/en/latest/', None),
 }
 
-source_suffix = '.rst'
 master_doc = 'index'
 
 authors = 'Matthias Geier'

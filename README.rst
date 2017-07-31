@@ -17,24 +17,28 @@ Features:
 
 * playback of multiple signals at the same time (that's why it's called "mixer")
 
-* non-blocking callback function, using PortAudio ringbuffers
-
 * play from buffer, play from ringbuffer
 
 * record into buffer, record into ringbuffer
 
 * multichannel support
 
-* all memory allocations/deallocations happen outside of the audio callback
-
-* NumPy arrays with data type 'float32' can be easily used (via the buffer
+* NumPy arrays with data type ``'float32'`` can be easily used (via the buffer
   protocol) as long as they are C-contiguous
 
-Planned features:
+* fixed latency playback, (close to) no jitter (optional)
 
-* fixed latency playback, no jitter (optional)
+  * to be verified ...
 
 * sample-accurate playback/recording (with known offset)
+
+  * to be verified ...
+
+* non-blocking callback function, using PortAudio ringbuffers
+
+* all memory allocations/deallocations happen outside the audio callback
+
+Planned features:
 
 * meticulous reporting of overruns/underruns
 
