@@ -1,4 +1,15 @@
+import os
 from subprocess import check_output
+import sys
+
+sys.path.insert(0, os.path.abspath('../src'))
+sys.path.insert(0, os.path.abspath('.'))
+
+# Fake imports to avoid actually loading CFFI and C extension modules
+import fake_sounddevice
+sys.modules['sounddevice'] = sys.modules['fake_sounddevice']
+import fake_rtmixer
+sys.modules['_rtmixer'] = sys.modules['fake_rtmixer']
 
 extensions = [
     'sphinx.ext.autodoc',
