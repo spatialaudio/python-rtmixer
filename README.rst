@@ -44,6 +44,10 @@ Planned features:
 
 * loopback tests to verify correct operation and accurate latency values
 
+* fade in/out?
+
+* loop?
+
 * playlist/queue?
 
 Out of scope:
@@ -58,8 +62,6 @@ Out of scope:
   a time)
 
 * resampling (apart from what PortAudio does)
-
-* fade in/out
 
 * fast forward/rewind
 
