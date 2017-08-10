@@ -11,6 +11,12 @@ from _rtmixer import ffi as _ffi, lib as _lib
 RingBuffer = _init_ringbuffer(_ffi, _lib)
 
 
+# Get constants from C library
+for _k, _v in vars(_lib).items():
+    if _k.isupper():
+        globals()[_k] = _v
+
+
 class _Base(_sd._StreamBase):
     """Base class for Mixer et al."""
 
@@ -53,7 +59,7 @@ class _Base(_sd._StreamBase):
 
         """
         cancel_action = _ffi.new('struct action*', dict(
-            type=_lib.CANCEL,
+            type=CANCEL,
             allow_belated=allow_belated,
             requested_time=time,
             action=action,
@@ -132,7 +138,7 @@ class Mixer(_Base):
         buffer = _ffi.from_buffer(buffer)
         _, samplesize = _sd._split(self.samplesize)
         action = _ffi.new('struct action*', dict(
-            type=_lib.PLAY_BUFFER,
+            type=PLAY_BUFFER,
             allow_belated=allow_belated,
             requested_time=start,
             buffer=_ffi.cast('float*', buffer),
@@ -158,11 +164,11 @@ class Mixer(_Base):
         if ringbuffer.elementsize != samplesize * channels:
             raise ValueError('Incompatible elementsize')
         action = _ffi.new('struct action*', dict(
-            type=_lib.PLAY_RINGBUFFER,
+            type=PLAY_RINGBUFFER,
             allow_belated=allow_belated,
             requested_time=start,
             ringbuffer=ringbuffer._ptr,
-            total_frames=_lib.ULONG_MAX,
+            total_frames=ULONG_MAX,
             channels=channels,
             mapping=mapping,
         ))
@@ -197,7 +203,7 @@ class Recorder(_Base):
         buffer = _ffi.from_buffer(buffer)
         samplesize, _ = _sd._split(self.samplesize)
         action = _ffi.new('struct action*', dict(
-            type=_lib.RECORD_BUFFER,
+            type=RECORD_BUFFER,
             allow_belated=allow_belated,
             requested_time=start,
             buffer=_ffi.cast('float*', buffer),
@@ -223,11 +229,11 @@ class Recorder(_Base):
         if ringbuffer.elementsize != samplesize * channels:
             raise ValueError('Incompatible elementsize')
         action = _ffi.new('struct action*', dict(
-            type=_lib.RECORD_RINGBUFFER,
+            type=RECORD_RINGBUFFER,
             allow_belated=allow_belated,
             requested_time=start,
             ringbuffer=ringbuffer._ptr,
-            total_frames=_lib.ULONG_MAX,
+            total_frames=ULONG_MAX,
             channels=channels,
             mapping=mapping,
         ))
