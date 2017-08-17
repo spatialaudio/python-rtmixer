@@ -2,15 +2,15 @@
 """A minimalistic sampler with an even more minimalistic GUI."""
 
 import collections
+import functools
 import math
 try:
     import tkinter as tk
 except ImportError:
-    # Python 2.x
-    import Tkinter as tk
+    import Tkinter as tk  # Python 2.x
 
 import rtmixer
-from tkhelper import TkKeyEventDebouncer
+import tkhelper
 
 
 HELPTEXT = 'Hold uppercase key for recording,\nlowercase for playback'
@@ -21,9 +21,7 @@ BUFFER_DURATION = 0.1  # seconds
 
 class Sample(object):
 
-    def __init__(self):
-        elementsize = stream.samplesize[0]
-        size = BUFFER_DURATION * stream.samplerate
+    def __init__(self, elementsize, size):
         # Python 2.x doesn't have math.log2(), and it needs int():
         size = 2**int(math.ceil(math.log(size, 2)))
         self.ringbuffer = rtmixer.RingBuffer(elementsize, size)
@@ -31,19 +29,21 @@ class Sample(object):
         self.action = None
 
 
-class MiniSampler(tk.Tk, TkKeyEventDebouncer):
+class MiniSampler(tk.Tk, tkhelper.KeyEventDebouncer):
 
-    def __init__(self, *args, **kwargs):
-        tk.Tk.__init__(self, *args, **kwargs)
-        TkKeyEventDebouncer.__init__(self)
+    def __init__(self, stream, buffer_duration=BUFFER_DURATION):
+        tk.Tk.__init__(self)
+        tkhelper.KeyEventDebouncer.__init__(self)
         self.title('MiniSampler')
         tk.Label(self, text=HELPTEXT).pack(ipadx=20, ipady=20)
         self.rec_display = tk.Label(self, text='recording')
-        self.rec_counter = tk.IntVar()
+        self.rec_counter = tkhelper.IntVar()
         self.rec_counter.trace(mode='w', callback=self.update_rec_display)
         self.rec_counter.set(0)
         self.rec_display.pack(padx=10, pady=10, ipadx=5, ipady=5)
-        self.samples = collections.defaultdict(Sample)
+        self.samples = collections.defaultdict(functools.partial(
+            Sample, stream.samplesize[0], buffer_duration * stream.samplerate))
+        self.stream = stream
 
     def update_rec_display(self, *args):
         if self.rec_counter.get() == 0:
@@ -55,28 +55,20 @@ class MiniSampler(tk.Tk, TkKeyEventDebouncer):
         ch = event.char
         if ch.isupper():
             sample = self.samples[ch.lower()]
-            # TODO: check if we are already recording? check action?
-            sample.ringbuffer.flush()
-            sample.action = stream.record_ringbuffer(sample.ringbuffer)
+            if sample.action in self.stream.actions:
+                return
+            if sample.ringbuffer.read_available:
+                return
             del sample.buffer[:]
-            self.rec_counter.set(self.rec_counter.get() + 1)
+            self.rec_counter += 1
+            sample.action = self.stream.record_ringbuffer(sample.ringbuffer)
             self.poll_ringbuffer(sample)
         elif ch in self.samples:
             sample = self.samples[ch]
-            # TODO: can it be still recording or already playing?
-            if sample.action in stream.actions:
-                # TODO: the CANCEL action might still be active, which
-                #       shouldn't be a problem, right?
-                print(ch, 'action still running:', sample.action.type)
-            if ((sample.action is not None and
-                    sample.action.type != rtmixer._lib.CANCEL) or
-                    not sample.buffer):
-                print(sample.action.type, len(sample.buffer))
-                raise RuntimeError('Unable to play')
-            sample.action = stream.play_buffer(sample.buffer, channels=1)
-        else:
-            # TODO: handle special keys?
-            pass
+            if sample.action in self.stream.actions:
+                # CANCEL action from last key release might still be active
+                return
+            sample.action = self.stream.play_buffer(sample.buffer, channels=1)
 
     def on_key_release(self, event):
         # NB: State of "shift" button may change between key press and release!
@@ -85,45 +77,50 @@ class MiniSampler(tk.Tk, TkKeyEventDebouncer):
             return
         sample = self.samples[ch]
         # TODO: fade out (both recording and playback)?
-        # TODO: is it possible that there is no action?
-        assert sample.action
+        assert sample.action is not None
         # TODO: create a public API for that?
         if sample.action.type == rtmixer._lib.RECORD_RINGBUFFER:
             # TODO: check for errors/xruns? check for rinbuffer overflow?
             # Stop recording
-            sample.action = stream.cancel(sample.action)
+            sample.action = self.stream.cancel(sample.action)
             # A CANCEL action is returned which is checked by poll_ringbuffer()
         elif sample.action.type == rtmixer._lib.PLAY_BUFFER:
             # TODO: check for errors/xruns?
-            # Stop playback
-            sample.action = stream.cancel(sample.action)
-            # TODO: do something with sample.action?
+            # Stop playback (if still running)
+            if sample.action in self.stream.actions:
+                sample.action = self.stream.cancel(sample.action)
+                # TODO: do something with sample.action?
         elif sample.action.type == rtmixer._lib.CANCEL:
-            print('key {!r} released during CANCEL'.format(event.char))
+            # We might end up here if on_key_press() exits early
+            pass
         else:
-            print(event.char, sample.action)
-            assert False
+            assert False, (event.char, sample.action)
 
     def poll_ringbuffer(self, sample):
-        # TODO: check for errors? is everything still working OK?
-        assert sample.action, sample.action
+        assert sample.action is not None
         assert sample.action.type in (rtmixer._lib.RECORD_RINGBUFFER,
-                                      rtmixer._lib.CANCEL), sample.action.type
+                                      rtmixer._lib.CANCEL)
+        # TODO: check for errors? is everything still working OK?
+        # TODO: check for xruns?
         chunk = sample.ringbuffer.read()
         if chunk:
             sample.buffer.extend(chunk)
 
-        if (sample.action.type == rtmixer._lib.CANCEL and
-                sample.action not in stream.actions):
+        if sample.action not in self.stream.actions:
+            # Recording is finished
             # TODO: check for errors in CANCEL action?
-            sample.action = None
-            self.rec_counter.set(self.rec_counter.get() - 1)
+            self.rec_counter -= 1
         else:
             # Set polling rate based on input latency (which may change!):
-            self.after(int(stream.latency[0] * 1000),
+            self.after(int(self.stream.latency[0] * 1000),
                        self.poll_ringbuffer, sample)
 
 
-app = MiniSampler()
-with rtmixer.MixerAndRecorder(channels=1) as stream:
-    app.mainloop()
+def main():
+    with rtmixer.MixerAndRecorder(channels=1) as stream:
+        app = MiniSampler(stream)
+        app.mainloop()
+
+
+if __name__ == '__main__':
+    main()

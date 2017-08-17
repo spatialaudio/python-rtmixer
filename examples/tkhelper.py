@@ -1,7 +1,23 @@
-"""Key event debouncer for tkinter."""
+"""Some tools for tkinter."""
+try:
+    import tkinter as tk
+except ImportError:
+    import Tkinter as tk  # Python 2.x
 
 
-class TkKeyEventDebouncer(object):
+class IntVar(tk.IntVar):
+    """IntVar with increment and decrement operators."""
+
+    def __iadd__(self, value):
+        self._tk.eval('incr {0} {1:d}'.format(self._name, value))
+        return self
+
+    def __isub__(self, value):
+        self += -value
+        return self
+
+
+class KeyEventDebouncer(object):
     """Swallow repeated keyboard events if key is pressed and held.
 
     See https://gist.github.com/vtsatskin/8e3c0c636339b2228138
