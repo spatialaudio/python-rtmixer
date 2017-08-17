@@ -33,13 +33,13 @@ struct action
 {
   const enum actiontype type;
   bool allow_belated;
-  PaTime requested_time;
+  const PaTime requested_time;
   PaTime actual_time;
   struct action* next;
   union {
     float* const buffer;
     PaUtilRingBuffer* const ringbuffer;
-    struct action* action;  // Used in CANCEL
+    struct action* const action;  // Used in CANCEL
   };
   frame_t total_frames;
   frame_t done_frames;
