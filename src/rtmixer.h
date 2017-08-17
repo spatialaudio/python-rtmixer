@@ -5,6 +5,9 @@ typedef unsigned long PaStreamCallbackFlags;
 /* End of declarations from portaudio.h */
 
 typedef unsigned long frame_t;
+typedef _Bool bool;
+#define true 1
+#define false 0
 
 enum actiontype
 {
