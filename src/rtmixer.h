@@ -5,6 +5,7 @@ typedef unsigned long PaStreamCallbackFlags;
 /* End of declarations from portaudio.h */
 
 typedef unsigned long frame_t;
+typedef struct PaUtilRingBuffer PaUtilRingBuffer;
 typedef _Bool bool;
 #define true 1
 #define false 0
