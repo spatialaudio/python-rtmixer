@@ -1,4 +1,15 @@
 #!/usr/bin/env python3
+"""Play some random bleeps.
+
+This example shows the feature of playing a buffer at a given absolute time.
+Since all play_buffer() invocations are (deliberately) done at once, this puts
+some strain on the "action queue".
+The "qsize" has to be increased in order to handle this.
+
+This example also shows that NumPy arrays can be used, as long as they are
+C-contiguous and use the 'float32' data type.
+
+"""
 
 from __future__ import division  # Only needed for Python 2.x
 import numpy as np
@@ -13,6 +24,7 @@ latency = 'low'
 samplerate = 44100
 
 bleeps = 300
+qsize = 512  # Must be a power of 2
 
 attack = 0.005
 release = 0.1
@@ -58,7 +70,7 @@ for _ in range(bleeps):
     bleeplist.append(bleep)
 
 with rtmixer.Mixer(device=device, channels=channels, blocksize=blocksize,
-                   samplerate=samplerate, latency=latency, qsize=512) as m:
+                   samplerate=samplerate, latency=latency, qsize=qsize) as m:
     start_time = m.time
     for bleep in bleeplist:
         m.play_buffer(bleep,
@@ -66,4 +78,5 @@ with rtmixer.Mixer(device=device, channels=channels, blocksize=blocksize,
                       start=start_time + r.uniform(start_min, start_max))
     while m.actions:
         sd.sleep(100)
-    # TODO: check for xruns
+print('{0} buffer underflows in {1} processed audio blocks'.format(
+    m.stats.output_underflows, m.stats.blocks))

@@ -38,4 +38,6 @@ with sf.SoundFile(filename) as f:
             if written < size:
                 break
         m.wait(action)
-        # TODO: check for xruns and ringbuffer errors
+        # TODO: check for ringbuffer errors
+        if action.stats.output_underflows:
+            print('output underflows:', action.stats.output_underflows)

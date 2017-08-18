@@ -27,4 +27,6 @@ with stream:
     print('press Return to quit')
     print('#' * 80)
     input()
-# TODO: check xruns
+print('input underflows:', stream.stats.input_underflows)
+print('input overflows:', stream.stats.input_overflows)
+print('output underflows:', stream.stats.output_underflows)

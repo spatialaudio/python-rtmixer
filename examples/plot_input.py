@@ -76,4 +76,5 @@ with stream:
     q = rtmixer.RingBuffer(elementsize, stepsize * qsize)
     action = stream.record_ringbuffer(q)
     plt.show()
+# TODO: check for ringbuffer errors?
 print('Input overflows:', action.stats.input_overflows)
