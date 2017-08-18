@@ -79,6 +79,18 @@ class _Base(_sd._StreamBase):
         self._enqueue(cancel_action)
         return cancel_action
 
+    def fetch_and_reset_stats(self, time=0, allow_belated=True):
+        """Fetch and reset over-/underflow statistics of the stream.
+
+        """
+        action = _ffi.new('struct action*', dict(
+            type=FETCH_AND_RESET_STATS,
+            allow_belated=allow_belated,
+            requested_time=time,
+        ))
+        self._enqueue(action)
+        return action
+
     def wait(self, action, sleeptime=10):
         """Wait for *action* to be finished.
 

@@ -6,6 +6,8 @@
 #include <portaudio.h>
 #include "rtmixer.h"
 
+static const struct stats EMPTY_STATS;
+
 #ifdef NDEBUG
 #define CALLBACK_ASSERT(expr) ((void)(0))
 #else
@@ -78,6 +80,27 @@ frame_t seconds2samples(PaTime time, double samplerate)
   return (frame_t) llround(time * samplerate);
 }
 
+PaTime get_relevant_time(const struct action* action
+  , const PaStreamCallbackTimeInfo* timeInfo)
+{
+  enum actiontype type = action->type;
+  if (type == FETCH_AND_RESET_STATS)
+  {
+    return timeInfo->currentTime;
+  }
+  if (type == CANCEL)
+  {
+    CALLBACK_ASSERT(action->action);
+    type = action->action->type;
+  }
+  if (type == PLAY_BUFFER || type == PLAY_RINGBUFFER)
+  {
+    return timeInfo->outputBufferDacTime;
+  }
+  CALLBACK_ASSERT(type == RECORD_BUFFER || type == RECORD_RINGBUFFER);
+  return timeInfo->inputBufferAdcTime;
+}
+
 int callback(const void* input, void* output, frame_t frameCount
   , const PaStreamCallbackTimeInfo* timeInfo, PaStreamCallbackFlags statusFlags
   , void* userData)
@@ -96,16 +119,7 @@ int callback(const void* input, void* output, frame_t frameCount
   {
     struct action* const action = *actionaddr;
 
-    enum actiontype type = action->type;
-    if (type == CANCEL)
-    {
-      CALLBACK_ASSERT(action->action);
-      type = action->action->type;
-    }
-    const bool playing = type == PLAY_BUFFER || type == PLAY_RINGBUFFER;
-
-    PaTime io_time = playing ? timeInfo->outputBufferDacTime
-                             : timeInfo->inputBufferAdcTime;
+    PaTime time = get_relevant_time(action, timeInfo);
     frame_t offset = 0;
 
     // Check if the action is due to start in the current block
@@ -114,7 +128,7 @@ int callback(const void* input, void* output, frame_t frameCount
     {
       // This action has not yet been "active"
 
-      PaTime diff = action->requested_time - io_time;
+      PaTime diff = action->requested_time - time;
       if (diff >= 0.0)
       {
         offset = seconds2samples(diff, state->samplerate);
@@ -129,7 +143,7 @@ int callback(const void* input, void* output, frame_t frameCount
           continue;
         }
         // Re-calculate "diff" to propagate rounding errors
-        action->actual_time = io_time + (double)offset / state->samplerate;
+        action->actual_time = time + (double)offset / state->samplerate;
       }
       else
       {
@@ -140,7 +154,7 @@ int callback(const void* input, void* output, frame_t frameCount
           remove_action(actionaddr, state);
           continue;
         }
-        action->actual_time = io_time;
+        action->actual_time = time;
       }
     }
 
@@ -161,7 +175,7 @@ int callback(const void* input, void* output, frame_t frameCount
             // delinquent is not yet playing/recording
 
             frame_t delinquent_offset = 0;
-            PaTime diff = delinquent->requested_time - io_time;
+            PaTime diff = delinquent->requested_time - time;
             if (diff >= 0.0)
             {
               delinquent_offset = seconds2samples(diff, state->samplerate);
@@ -217,6 +231,16 @@ int callback(const void* input, void* output, frame_t frameCount
       continue;
     }
 
+    // Handle FETCH_AND_RESET_STATS action
+
+    if (action->type == FETCH_AND_RESET_STATS)
+    {
+      action->stats = state->stats;
+      state->stats = EMPTY_STATS;
+      remove_action(actionaddr, state);
+      continue;
+    }
+
     // Store buffer over-/underflow information
 
     get_stats(statusFlags, &(action->stats));
@@ -238,9 +262,17 @@ int callback(const void* input, void* output, frame_t frameCount
 
     // Shove audio data around
 
-    float* device_data
-      = playing ? (float*)output + offset * state->output_channels
-                : (float*) input + offset * state->input_channels;
+    float* device_data = NULL;
+    if (action->type == PLAY_BUFFER || action->type == PLAY_RINGBUFFER)
+    {
+      device_data = (float*)output + offset * state->output_channels;
+    }
+    else
+    {
+      CALLBACK_ASSERT(action->type == RECORD_BUFFER
+                   || action->type == RECORD_RINGBUFFER);
+      device_data = (float*) input + offset * state->input_channels;
+    }
 
     if (action->type == PLAY_BUFFER || action->type == RECORD_BUFFER)
     {

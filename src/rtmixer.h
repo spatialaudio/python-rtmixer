@@ -17,7 +17,7 @@ enum actiontype
   RECORD_BUFFER,
   RECORD_RINGBUFFER,
   CANCEL,
-  // TODO: action to query xrun stats etc.?
+  FETCH_AND_RESET_STATS,
 };
 
 struct stats
