@@ -10,7 +10,7 @@ API Documentation
 .. automodule:: rtmixer
 
 .. autoclass:: Mixer
-   :members: play_buffer, play_ringbuffer, actions, cancel, wait
+   :members: play_buffer, play_ringbuffer, actions, cancel, wait, stats
    :undoc-members:
 
 .. autoclass:: Recorder

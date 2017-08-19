@@ -21,7 +21,7 @@ setup(
     install_requires=[
         'CFFI>=1',  # for _cffi_backend
         'pa_ringbuffer',  # for init()
-        'sounddevice>0.3.6',
+        'sounddevice>0.3.9',
     ],
     author='Matthias Geier',
     author_email='Matthias.Geier@gmail.com',

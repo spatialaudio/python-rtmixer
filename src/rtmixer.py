@@ -47,6 +47,18 @@ class _Base(_sd._StreamBase):
         self._drain_result_q()
         return self._actions
 
+    @property
+    def stats(self):
+        """Get over-/underflow statistics from an *inactive* stream.
+
+        To get statistics from an :attr:`~sounddevice.Stream.active`
+        stream, use `fetch_and_reset_stats()`.
+
+        """
+        if self.active:
+            raise RuntimeError('Accessing .stats on an active stream')
+        return _ffi.new('struct stats*', self._state.stats)
+
     def cancel(self, action, time=0, allow_belated=True):
         """Initiate stopping a running action.
 
