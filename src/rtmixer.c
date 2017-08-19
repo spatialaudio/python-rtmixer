@@ -41,6 +41,38 @@ void get_stats(PaStreamCallbackFlags flags, struct stats* stats)
   if (flags & paOutputOverflow)  { stats->output_overflows++; }
 }
 
+// CANCEL actions are inserted in the front, others in the back of the list.
+// Linked lists of actions are supported.
+void get_new_actions(struct state* state)
+{
+  struct action** last_action_addr = &(state->actions);
+  for (struct action* new_action = NULL
+      ; PaUtil_ReadRingBuffer(state->action_q, &new_action, 1)
+      ;)
+  {
+    do
+    {
+      struct action* next = new_action->next;
+      if (new_action->type == CANCEL)
+      {
+        new_action->next = state->actions;
+        state->actions = new_action;
+      }
+      else
+      {
+        new_action->next = NULL;
+        while (*last_action_addr)
+        {
+          last_action_addr = &((*last_action_addr)->next);
+        }
+        *last_action_addr = new_action;
+      }
+      new_action = next;
+    }
+    while (new_action);
+  }
+}
+
 frame_t seconds2samples(PaTime time, double samplerate)
 {
   return (frame_t) llround(time * samplerate);
@@ -57,20 +89,7 @@ int callback(const void* input, void* output, frame_t frameCount
 
   get_stats(statusFlags, &(state->stats));
 
-  for (struct action* action = NULL
-      ; PaUtil_ReadRingBuffer(state->action_q, &action, 1)
-      ;)
-  {
-    // Actions are added at the beginning of the list, because CANCEL actions
-    // must come before the action they are cancelling.  Also, it's easier.
-    struct action* i = action;
-    while (i->next)
-    {
-      i = i->next;
-    }
-    i->next = state->actions;
-    state->actions = action;
-  }
+  get_new_actions(state);
 
   struct action** actionaddr = &(state->actions);
   while (*actionaddr)
@@ -129,7 +148,8 @@ int callback(const void* input, void* output, frame_t frameCount
 
     if (action->type == CANCEL)
     {
-      // Search the following list items, not the preceding ones!
+      // Since CANCEL actions are inserted in the beginning,
+      // we need to search only the following list items
       for (struct action** i = &(action->next); *i; i = &((*i)->next))
       {
         if (*i == action->action)
