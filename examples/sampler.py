@@ -78,19 +78,18 @@ class MiniSampler(tk.Tk, tkhelper.KeyEventDebouncer):
         sample = self.samples[ch]
         # TODO: fade out (both recording and playback)?
         assert sample.action is not None
-        # TODO: create a public API for that?
-        if sample.action.type == rtmixer._lib.RECORD_RINGBUFFER:
+        if sample.action.type == rtmixer.RECORD_RINGBUFFER:
             # TODO: check for errors/xruns? check for rinbuffer overflow?
             # Stop recording
             sample.action = self.stream.cancel(sample.action)
             # A CANCEL action is returned which is checked by poll_ringbuffer()
-        elif sample.action.type == rtmixer._lib.PLAY_BUFFER:
+        elif sample.action.type == rtmixer.PLAY_BUFFER:
             # TODO: check for errors/xruns?
             # Stop playback (if still running)
             if sample.action in self.stream.actions:
                 sample.action = self.stream.cancel(sample.action)
                 # TODO: do something with sample.action?
-        elif sample.action.type == rtmixer._lib.CANCEL:
+        elif sample.action.type == rtmixer.CANCEL:
             # We might end up here if on_key_press() exits early
             pass
         else:
@@ -98,8 +97,8 @@ class MiniSampler(tk.Tk, tkhelper.KeyEventDebouncer):
 
     def poll_ringbuffer(self, sample):
         assert sample.action is not None
-        assert sample.action.type in (rtmixer._lib.RECORD_RINGBUFFER,
-                                      rtmixer._lib.CANCEL)
+        assert sample.action.type in (rtmixer.RECORD_RINGBUFFER,
+                                      rtmixer.CANCEL)
         # TODO: check for errors? is everything still working OK?
         # TODO: check for xruns?
         chunk = sample.ringbuffer.read()
