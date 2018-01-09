@@ -84,21 +84,23 @@ PaTime get_relevant_time(const struct action* action
   , const PaStreamCallbackTimeInfo* timeInfo)
 {
   enum actiontype type = action->type;
-  if (type == FETCH_AND_RESET_STATS)
-  {
-    return timeInfo->currentTime;
-  }
   if (type == CANCEL)
   {
     CALLBACK_ASSERT(action->action);
     type = action->action->type;
   }
-  if (type == PLAY_BUFFER || type == PLAY_RINGBUFFER)
+
+  switch (type)
   {
-    return timeInfo->outputBufferDacTime;
+    case PLAY_BUFFER:
+    case PLAY_RINGBUFFER:
+      return timeInfo->outputBufferDacTime;
+    case RECORD_BUFFER:
+    case RECORD_RINGBUFFER:
+      return timeInfo->inputBufferAdcTime;
+    default:
+      return timeInfo->currentTime;
   }
-  CALLBACK_ASSERT(type == RECORD_BUFFER || type == RECORD_RINGBUFFER);
-  return timeInfo->inputBufferAdcTime;
 }
 
 int callback(const void* input, void* output, frame_t frameCount
