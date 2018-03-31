@@ -5,7 +5,7 @@ typedef unsigned long PaStreamCallbackFlags;
 /* End of declarations from portaudio.h */
 
 typedef unsigned long frame_t;
-typedef struct PaUtilRingBuffer PaUtilRingBuffer;
+struct PaUtilRingBuffer;
 typedef _Bool bool;
 #define true 1
 #define false 0
@@ -38,7 +38,7 @@ struct action
   struct action* next;
   union {
     float* const buffer;
-    PaUtilRingBuffer* const ringbuffer;
+    struct PaUtilRingBuffer* const ringbuffer;
     struct action* const action;  // Used in CANCEL
   };
   frame_t total_frames;
@@ -55,8 +55,8 @@ struct state
   const frame_t input_channels;
   const frame_t output_channels;
   double samplerate;
-  PaUtilRingBuffer* const action_q;  // Queue for incoming commands
-  PaUtilRingBuffer* const result_q;  // Queue for results and command disposal
+  struct PaUtilRingBuffer* const action_q;  // Queue for incoming commands
+  struct PaUtilRingBuffer* const result_q;  // Q for results and cmd disposal
   struct action* actions;  // Singly linked list of actions
   struct stats stats;
 };
