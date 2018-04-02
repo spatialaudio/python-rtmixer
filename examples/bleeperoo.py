@@ -78,5 +78,6 @@ with rtmixer.Mixer(device=device, channels=channels, blocksize=blocksize,
                       start=start_time + r.uniform(start_min, start_max))
     while m.actions:
         sd.sleep(100)
+    # TODO: get list of actions and check if all were started on time?
 print('{0} buffer underflows in {1} processed audio blocks'.format(
     m.stats.output_underflows, m.stats.blocks))

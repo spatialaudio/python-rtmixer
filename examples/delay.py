@@ -8,9 +8,9 @@ channels = 1
 blocksize = 0
 latency = 'low'
 samplerate = 48000
-safety = 0.1  # Shouldn't be less than the duration of an audio block
+safety = 0.001  # Increase if Python interpreter is slow
 
-rb_size = 2**math.ceil(math.log2((delay + safety) * samplerate))
+rb_size = 2**math.ceil(math.log2(delay * samplerate))
 
 stream = rtmixer.MixerAndRecorder(
     channels=channels, blocksize=blocksize, samplerate=samplerate,
@@ -18,11 +18,32 @@ stream = rtmixer.MixerAndRecorder(
 with stream:
     samplesize = 4
     assert {samplesize} == set(stream.samplesize)
+    print('  input latency:', stream.latency[0])
+    print(' output latency:', stream.latency[1])
+    print('            sum:', sum(stream.latency))
+    print('requested delay:', delay)
     rb = rtmixer.RingBuffer(samplesize * channels, rb_size)
     start = stream.time + safety
-    stream.record_ringbuffer(rb, start=start, allow_belated=False)
-    stream.play_ringbuffer(rb, start=start + delay, allow_belated=False)
-    # TODO: check if start was successful
+    record_action = stream.record_ringbuffer(rb, start=start,
+                                             allow_belated=False)
+    play_action = stream.play_ringbuffer(rb, start=start + delay,
+                                         allow_belated=False)
+    # Dummy recording to wait until "start" has passed:
+    stream.wait(stream.record_buffer(b'', channels=1, start=start))
+    if record_action not in stream.actions:
+        if record_action.actual_time == 0:
+            raise RuntimeError('Increase "safety"')
+        else:
+            # TODO: could there be another error?
+            raise RuntimeError('Ring buffer overflow (increase "delay"?)')
+    # Dummy playback to wait until "start + delay" has passed:
+    stream.wait(stream.play_buffer(b'', channels=1, start=start + delay))
+    if play_action not in stream.actions:
+        if play_action.actual_time == 0:
+            raise RuntimeError('Increase "safety" or "delay"')
+        else:
+            # TODO: could there be another error?
+            raise RuntimeError('Ring buffer underflow (increase "delay"?)')
     print('#' * 80)
     print('press Return to quit')
     print('#' * 80)
