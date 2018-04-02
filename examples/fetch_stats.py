@@ -14,8 +14,17 @@ channels = 1
 
 
 def print_stats(obj):
-    print('  blocks:', obj.stats.blocks)
-    print('  overflows:', obj.stats.input_overflows)
+    print('          blocks:', obj.stats.blocks)
+    print('       overflows:', obj.stats.input_overflows)
+
+
+def print_action(action):
+    print('            type:', next(
+        k for k, v in vars(rtmixer).items() if v == action.type))
+    print('  requested time:', action.requested_time)
+    print('     actual time:', action.actual_time)
+    print('    total frames:', action.total_frames)
+    print('     done frames:', action.done_frames)
 
 
 stream = rtmixer.Recorder(
@@ -31,23 +40,31 @@ assert stream.stats.blocks == 0
 assert stream.stats.input_overflows == 0
 
 with stream:
-    print('waiting a few seconds')
+    print('waiting a few seconds ...')
     sd.sleep(3 * 1000)
     print('checking stats:')
     action = stream.fetch_and_reset_stats()
     stream.wait(action)
     print_stats(action)
-    print('starting recording to buffer')
+    print('starting recording to buffer ...')
     action = stream.record_buffer(buffer, channels=channels)
-    # TODO: check if recording started successfully
+    # TODO: check if recording started successfully?
     stream.wait(action)
+    print('result:')
+    print_action(action)
     print('stats from finished recording:')
     print_stats(action)
-    print('starting recording to ringbuffer')
+    print('starting recording to ringbuffer ...')
     action = stream.record_ringbuffer(ringbuffer, channels=channels)
-    # TODO: check if recording started successfully
-    # TODO: record ringbuffer, but don't read from it (detect overflow)
-    sd.sleep(3 * 1000)
+    # TODO: check if recording started successfully?
+    # NB: We are writing to the ringbuffer, but we are not reading from it,
+    # which will lead to an overflow
+    print('waiting for ring buffer to fill up ...')
+    stream.wait(action)
+    print('result:')
+    print_action(action)
+    print('recording was stopped because of ringbuffer overflow:',
+          action.done_frames != action.total_frames)
     print('checking stats:')
     action = stream.fetch_and_reset_stats()
     stream.wait(action)

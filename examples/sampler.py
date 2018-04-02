@@ -79,14 +79,15 @@ class MiniSampler(tk.Tk, tkhelper.KeyEventDebouncer):
         # TODO: fade out (both recording and playback)?
         assert sample.action is not None
         if sample.action.type == rtmixer.RECORD_RINGBUFFER:
-            # TODO: check for errors/xruns? check for rinbuffer overflow?
             # Stop recording
+            sample.keep_alive = sample.action
             sample.action = self.stream.cancel(sample.action)
             # A CANCEL action is returned which is checked by poll_ringbuffer()
         elif sample.action.type == rtmixer.PLAY_BUFFER:
             # TODO: check for errors/xruns?
             # Stop playback (if still running)
             if sample.action in self.stream.actions:
+                sample.keep_alive = sample.action
                 sample.action = self.stream.cancel(sample.action)
                 # TODO: do something with sample.action?
         elif sample.action.type == rtmixer.CANCEL:
@@ -99,17 +100,22 @@ class MiniSampler(tk.Tk, tkhelper.KeyEventDebouncer):
         assert sample.action is not None
         assert sample.action.type in (rtmixer.RECORD_RINGBUFFER,
                                       rtmixer.CANCEL)
-        # TODO: check for errors? is everything still working OK?
-        # TODO: check for xruns?
-        chunk = sample.ringbuffer.read()
-        if chunk:
-            sample.buffer.extend(chunk)
-
         if sample.action not in self.stream.actions:
             # Recording is finished
-            # TODO: check for errors in CANCEL action?
             self.rec_counter -= 1
+            if sample.action.type == rtmixer.CANCEL:
+                # TODO: check for errors in CANCEL action?
+                action = sample.action.action
+            else:
+                action = sample.action
+            assert action.type == rtmixer.RECORD_RINGBUFFER
+            if action.done_frames != action.total_frames:
+                print('error while recording (ringbuffer too short?)')
+            # TODO: check for xruns?
+            # NB: We make sure that the ringbuffer is emptied after recording:
+            sample.buffer.extend(sample.ringbuffer.read())
         else:
+            sample.buffer.extend(sample.ringbuffer.read())
             # Set polling rate based on input latency (which may change!):
             self.after(int(self.stream.latency[0] * 1000),
                        self.poll_ringbuffer, sample)

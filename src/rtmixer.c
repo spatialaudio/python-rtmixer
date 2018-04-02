@@ -28,7 +28,7 @@ void remove_action(struct action** addr, const struct state* state)
     , &action, 1);
   if (written != 1)
   {
-    // TODO: do something? Stop callback? Log error (in "state")?
+    // TODO: Stop callback! Unrecoverable error! Log error (in "state")?
     printf("result queue is full\n");
   }
 }
@@ -36,6 +36,8 @@ void remove_action(struct action** addr, const struct state* state)
 void get_stats(PaStreamCallbackFlags flags, struct stats* stats)
 {
   stats->blocks++;
+
+  // TODO: store min/max block size?
 
   if (flags & paInputUnderflow)  { stats->input_underflows++; }
   if (flags & paInputOverflow)   { stats->input_overflows++; }
@@ -116,6 +118,9 @@ int callback(const void* input, void* output, frame_t frameCount
 
   get_new_actions(state);
 
+  // TODO: store min/max available space in result_q?
+  // TODO: use worst case from before/after the "while" loop?
+
   struct action** actionaddr = &(state->actions);
   while (*actionaddr)
   {
@@ -185,7 +190,8 @@ int callback(const void* input, void* output, frame_t frameCount
               {
                 // Removal is scheduled before playback/recording begins
 
-                // TODO: save some status information?
+                // TODO: save some more status information?
+                delinquent->total_frames = 0;
                 remove_action(i, state);
                 break;
               }
@@ -199,9 +205,9 @@ int callback(const void* input, void* output, frame_t frameCount
               }
             }
 
-            if (delinquent->total_frames + delinquent_offset > offset)
+            if (delinquent->total_frames == ULONG_MAX
+             || delinquent->total_frames + delinquent_offset > offset)
             {
-              CALLBACK_ASSERT(offset >= delinquent_offset);
               delinquent->total_frames = offset - delinquent_offset;
             }
             else
@@ -382,9 +388,6 @@ int callback(const void* input, void* output, frame_t frameCount
       if (totalsize < (ring_buffer_size_t)frames)
       {
         // Ring buffer is empty or full
-
-        // TODO: store some information in action?
-
         remove_action(actionaddr, state);
         continue;
       }

@@ -35,7 +35,7 @@ struct action
   bool allow_belated;
   const PaTime requested_time;
   PaTime actual_time;
-  struct action* next;
+  struct action* next;  // Used to create singly linked list of actions
   union {
     float* const buffer;
     struct PaUtilRingBuffer* const ringbuffer;
@@ -43,9 +43,8 @@ struct action
   };
   frame_t total_frames;
   frame_t done_frames;
-  // TODO: something to store the result of the action?
   struct stats stats;
-  // TODO: queue usage: store smallest available write/read size?
+  // TODO: ringbuffer usage: store smallest available write/read size?
   const frame_t channels;  // Size of the following array
   const frame_t mapping[];  // "flexible array member"
 };
@@ -59,6 +58,7 @@ struct state
   struct PaUtilRingBuffer* const result_q;  // Q for results and cmd disposal
   struct action* actions;  // Singly linked list of actions
   struct stats stats;
+  // TODO: result_q usage?
 };
 
 int callback(const void* input, void* output, frame_t frameCount
