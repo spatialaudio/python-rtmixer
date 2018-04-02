@@ -48,7 +48,6 @@ with stream:
     print_stats(action)
     print('starting recording to buffer ...')
     action = stream.record_buffer(buffer, channels=channels)
-    # TODO: check if recording started successfully?
     stream.wait(action)
     print('result:')
     print_action(action)
@@ -56,7 +55,6 @@ with stream:
     print_stats(action)
     print('starting recording to ringbuffer ...')
     action = stream.record_ringbuffer(ringbuffer, channels=channels)
-    # TODO: check if recording started successfully?
     # NB: We are writing to the ringbuffer, but we are not reading from it,
     # which will lead to an overflow
     print('waiting for ring buffer to fill up ...')
