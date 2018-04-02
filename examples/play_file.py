@@ -8,10 +8,10 @@ import sounddevice as sd
 import soundfile as sf
 
 filename = sys.argv[1]
-playback_blocksize = 256
-latency = 0
-reading_blocksize = 1024
-rb_size = 16  # Number of blocks, has to be power of two
+playback_blocksize = None
+latency = None
+reading_blocksize = 1024  # (reading_blocksize * rb_size) has to be power of 2
+rb_size = 16  # Number of blocks
 
 with sf.SoundFile(filename) as f:
     with rtmixer.Mixer(channels=f.channels,
@@ -38,6 +38,7 @@ with sf.SoundFile(filename) as f:
             if written < size:
                 break
         m.wait(action)
-        # TODO: check for ringbuffer errors
+        if action.done_frames != f.frames:
+            RuntimeError('Something went wrong, not all frames were played')
         if action.stats.output_underflows:
             print('output underflows:', action.stats.output_underflows)
