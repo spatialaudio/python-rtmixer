@@ -97,28 +97,40 @@ class MiniSampler(tk.Tk, tkhelper.KeyEventDebouncer):
             assert False, (event.char, sample.action)
 
     def poll_ringbuffer(self, sample):
+        # Setting polling rate based on input latency (which may change!).
+        # NB: We are rounding up because PortAudio might report a latency of
+        # less than 1 ms.
+        self.after(int(self.stream.latency[0] * 1000) + 1,
+                   self._poll_ringbuffer, sample)
+
+    def _poll_ringbuffer(self, sample):
         assert sample.action is not None
         assert sample.action.type in (rtmixer.RECORD_RINGBUFFER,
                                       rtmixer.CANCEL)
-        if sample.action not in self.stream.actions:
-            # Recording is finished
-            self.rec_counter -= 1
-            if sample.action.type == rtmixer.CANCEL:
-                # TODO: check for errors in CANCEL action?
-                action = sample.action.action
-            else:
-                action = sample.action
-            assert action.type == rtmixer.RECORD_RINGBUFFER
-            if action.done_frames != action.total_frames:
-                print('error while recording (ringbuffer too short?)')
-            # TODO: check for xruns?
-            # NB: We make sure that the ringbuffer is emptied after recording:
+        if sample.action in self.stream.actions:
             sample.buffer.extend(sample.ringbuffer.read())
+            self.poll_ringbuffer(sample)
+            return
+
+        # Recording is finished
+        self.rec_counter -= 1
+        if sample.action.type == rtmixer.CANCEL:
+            # TODO: check for errors in CANCEL action?
+            # NB: The "inner" action had to be kept alive
+            action = sample.action.action
         else:
-            sample.buffer.extend(sample.ringbuffer.read())
-            # Set polling rate based on input latency (which may change!):
-            self.after(int(self.stream.latency[0] * 1000),
-                       self.poll_ringbuffer, sample)
+            action = sample.action
+        assert action.type == rtmixer.RECORD_RINGBUFFER
+        if action.done_frames != action.total_frames:
+            print('error while recording (ringbuffer too short?)')
+        if action.stats.input_underflows:
+            print('input underflows:', action.stats.input_underflows,
+                  '(in', action.stats.blocks, 'blocks)')
+        if action.stats.input_overflows:
+            print('input overflows:', action.stats.input_overflows,
+                  '(in', action.stats.blocks, 'blocks)')
+        # NB: We make sure that the ringbuffer is emptied after recording:
+        sample.buffer.extend(sample.ringbuffer.read())
 
 
 def main():
