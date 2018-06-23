@@ -33,8 +33,11 @@ copyright = '2017, ' + authors
 try:
     release = check_output(['git', 'describe', '--tags', '--always'])
     release = release.decode().strip()
+    today = check_output(['git', 'show', '-s', '--format=%ad', '--date=short'])
+    today = today.decode().strip()
 except Exception:
     release = '<unknown>'
+    today = '<unknown date>'
 
 pygments_style = 'sphinx'
 html_theme = 'sphinx_rtd_theme'
