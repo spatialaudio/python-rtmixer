@@ -85,10 +85,9 @@ Installation
 
 ::
 
-    python3 setup.py develop --user
-
-or ::
-
+    git clone https://github.com/spatialaudio/python-rtmixer
+    cd python-rtmixer
+    git submodule update --init
     python3 -m pip install -e . --user
 
 Usage
