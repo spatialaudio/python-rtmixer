@@ -14,7 +14,8 @@ channels = 1
 
 
 def print_stats(obj):
-    print('          blocks:', obj.stats.blocks)
+    print('blocks (min/max): {} ({}/{})'.format(
+        obj.stats.blocks, obj.stats.min_blocksize, obj.stats.max_blocksize))
     print('       overflows:', obj.stats.input_overflows)
 
 

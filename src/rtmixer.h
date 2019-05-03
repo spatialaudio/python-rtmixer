@@ -23,6 +23,8 @@ enum actiontype
 struct stats
 {
   frame_t blocks;
+  frame_t min_blocksize;
+  frame_t max_blocksize;
   frame_t input_underflows;
   frame_t input_overflows;
   frame_t output_underflows;

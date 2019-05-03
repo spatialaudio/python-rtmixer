@@ -33,11 +33,26 @@ void remove_action(struct action** addr, const struct state* state)
   }
 }
 
-void get_stats(PaStreamCallbackFlags flags, struct stats* stats)
+void get_stats(frame_t frameCount, PaStreamCallbackFlags flags
+  , struct stats* stats)
 {
+  if (stats->blocks == 0)
+  {
+    stats->min_blocksize = frameCount;
+    stats->max_blocksize = frameCount;
+  }
+  else
+  {
+    if (frameCount < stats->min_blocksize)
+    {
+      stats->min_blocksize = frameCount;
+    }
+    if (frameCount > stats->max_blocksize)
+    {
+      stats->max_blocksize = frameCount;
+    }
+  }
   stats->blocks++;
-
-  // TODO: store min/max block size?
 
   if (flags & paInputUnderflow)  { stats->input_underflows++; }
   if (flags & paInputOverflow)   { stats->input_overflows++; }
@@ -114,7 +129,7 @@ int callback(const void* input, void* output, frame_t frameCount
 
   memset(output, 0, sizeof(float) * state->output_channels * frameCount);
 
-  get_stats(statusFlags, &(state->stats));
+  get_stats(frameCount, statusFlags, &(state->stats));
 
   get_new_actions(state);
 
@@ -249,9 +264,9 @@ int callback(const void* input, void* output, frame_t frameCount
       continue;
     }
 
-    // Store buffer over-/underflow information
+    // Store buffer over-/underflow information etc.
 
-    get_stats(statusFlags, &(action->stats));
+    get_stats(frameCount, statusFlags, &(action->stats));
 
     // Get number of remaining frames in the current block
 
