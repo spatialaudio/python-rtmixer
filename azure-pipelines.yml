@@ -1,19 +1,82 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
-
+# Originally adapted from github.com/vispy/vispy (BSD 3-clause)
 trigger:
-- master
-
-pool:
-  vmImage: 'ubuntu-latest'
-
-steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
-
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+  branches:
+    include:
+      - '*'
+  tags:
+    include:
+      - v*
+variables:
+  CIBW_BUILDING: "true"
+  CIBW_SKIP: "cp27-* cp34-*"
+  CIBW_TEST_COMMAND: "python -c \"import rtmixer; print(rtmixer.__version__)\""
+  CIBW_BUILD_VERBOSITY: "2"
+  CIBW_BEFORE_BUILD: "pip install -U pip setuptools"
+jobs:
+- job: linux
+  pool: {vmImage: 'Ubuntu-16.04'}
+  steps:
+    - task: UsePythonVersion@0
+    - bash: |
+        git submodule update --init --recursive
+        python -m pip install --upgrade pip
+        pip install cibuildwheel twine numpy Cython jupyter ipywidgets
+        python setup.py sdist -d wheelhouse
+        cibuildwheel --output-dir wheelhouse .
+    - task: PublishPipelineArtifact@1
+      inputs:
+        path: $(System.DefaultWorkingDirectory)/wheelhouse
+        artifact: deployLinux
+- job: macos
+  pool: {vmImage: 'macOS-10.13'}
+  steps:
+    - task: UsePythonVersion@0
+    - bash: |
+        git submodule update --init --recursive
+        python -m pip install --upgrade pip
+        pip install cibuildwheel
+        cibuildwheel --output-dir wheelhouse .
+    - task: PublishPipelineArtifact@1
+      inputs:
+        path: $(System.DefaultWorkingDirectory)/wheelhouse
+        artifact: deployMacOS
+- job: windows
+  pool: {vmImage: 'vs2017-win2016'}
+  steps:
+    - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x86}}
+    - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x64}}
+    - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x86}}
+    - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x64}}
+    - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x86}}
+    - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x64}}
+    - bash: |
+        git submodule update --init --recursive
+        python -m pip install --upgrade pip
+        pip install cibuildwheel
+        cibuildwheel --output-dir wheelhouse .
+    - task: PublishPipelineArtifact@1
+      inputs:
+        path: $(System.DefaultWorkingDirectory)/wheelhouse
+        artifact: deployWindows
+- job: deployPyPI
+  pool: {vmImage: 'Ubuntu-16.04'}
+  condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/v'))
+  dependsOn:
+    - linux
+    - macos
+    - windows
+  steps:
+    - task: UsePythonVersion@0
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        patterns: |
+          deployLinux/*
+          deployMacOS/*.whl
+          deployWindows/*.whl
+    - bash: |
+        cd $(Pipeline.Workspace)
+        python -m pip install --upgrade pip
+        pip install twine
+        twine upload -u "__token__" --skip-existing deployLinux/* deployMacOS/* deployWindows/*
+      env:
+        TWINE_PASSWORD: $(pypiToken)
