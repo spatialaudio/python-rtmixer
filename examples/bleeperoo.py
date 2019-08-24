@@ -69,15 +69,42 @@ for _ in range(bleeps):
     assert bleep.flags.c_contiguous
     bleeplist.append(bleep)
 
+actionlist = []
 with rtmixer.Mixer(device=device, channels=channels, blocksize=blocksize,
                    samplerate=samplerate, latency=latency, qsize=qsize) as m:
     start_time = m.time
-    for bleep in bleeplist:
+    actionlist = [
         m.play_buffer(bleep,
                       channels=[r.randint(channels) + 1],
-                      start=start_time + r.uniform(start_min, start_max))
+                      start=start_time + r.uniform(start_min, start_max),
+                      allow_belated=False)
+        for bleep in bleeplist
+    ]
     while m.actions:
         sd.sleep(100)
-    # TODO: get list of actions and check if all were started on time?
 print('{0} buffer underflows in {1} processed audio blocks'.format(
     m.stats.output_underflows, m.stats.blocks))
+
+belated = 0
+min_delay = np.inf
+max_delay = -np.inf
+for action in actionlist:
+    assert action.type == rtmixer.PLAY_BUFFER
+    # NB: action.allow_belated might have been invalidated
+    assert action.requested_time != 0
+    if not action.actual_time:
+        belated += 1
+        assert action.done_frames == 0
+        continue
+    assert action.done_frames == action.total_frames
+    delay = action.actual_time - action.requested_time
+    if delay > max_delay:
+        max_delay = delay
+    if delay < min_delay:
+        min_delay = delay
+
+print('total number of bleeps:', len(actionlist))
+print('belated bleeps (not played):', belated)
+print('maxiumum delay (in usec):', max_delay * 1000 * 1000)
+print('maxiumum negative delay: ', -min_delay * 1000 * 1000)
+print('half sampling period:    ', 0.5 * 1000 * 1000 / samplerate)

@@ -34,7 +34,7 @@ struct stats
 struct action
 {
   const enum actiontype type;
-  bool allow_belated;
+  bool allow_belated;  // NB: Might be invalidated in the callback function!
   const PaTime requested_time;
   PaTime actual_time;
   struct action* next;  // Used to create singly linked list of actions
