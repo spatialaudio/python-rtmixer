@@ -80,7 +80,7 @@ Installation
 
 On Windows, macOS, and Linux you can install a precompiled wheel with::
 
-    pip install rtmixer
+    python3 -m pip install rtmixer
 
 This will install ``rtmixer`` and its dependencies, including ``sounddevice``.
 
@@ -93,7 +93,7 @@ Developers can install in editable mode with some variant of::
     git clone https://github.com/spatialaudio/python-rtmixer
     cd python-rtmixer
     git submodule update --init
-    python3 -m pip install -e . --user
+    python3 -m pip install -e .
 
 Usage
 -----
