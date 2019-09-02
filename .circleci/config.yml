@@ -31,7 +31,7 @@ jobs:
         - run:
             name: Get Python running
             command: |
-              pip install --user --upgrade --progress-bar off cffi pa_ringbuffer sphinx sphinx_rtd_theme
+              pip install --user --upgrade --progress-bar off -r doc/requirements.txt
 
         - save_cache:
             key: pip-cache
@@ -42,12 +42,11 @@ jobs:
         - run:
             name: make html
             command: |
-              cd doc;
-              make html
+              python setup.py build_sphinx
 
         # Save the outputs
         - store_artifacts:
-            path: doc/_build/html/
+            path: build/sphinx/html/
             destination: html
 
 workflows:

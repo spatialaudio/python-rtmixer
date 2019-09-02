@@ -25,7 +25,9 @@ ffibuilder.set_source(
         # '-Wconversion',
     ],
     # TODO: release mode by default, option for using debug mode
-    undef_macros=['NDEBUG'],
+    undef_macros=[
+        # 'NDEBUG'
+    ],
 )
 
 if __name__ == '__main__':
