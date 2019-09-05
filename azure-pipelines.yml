@@ -5,7 +5,7 @@ trigger:
       - '*'
   tags:
     include:
-      - v*
+      - '*'
 variables:
   CIBW_BUILDING: "true"
   CIBW_SKIP: "cp27-* cp34-*"
