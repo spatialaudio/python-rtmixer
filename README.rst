@@ -1,7 +1,7 @@
 Realtime Audio Mixer for Python
 ===============================
 
-**WARNING:** This is work in progress!
+.. warning:: This is work in progress!
 
 Goal: Reliable low-latency audio playback and recording with Python, using
 PortAudio_ via the sounddevice_ module.
@@ -75,22 +75,33 @@ Somewhat similar projects:
 * https://github.com/nvahalik/PyAudioMixer
 * http://www.pygame.org/docs/ref/mixer.html
 
-.. _PortAudio: http://portaudio.com/
-.. _sounddevice: http://python-sounddevice.readthedocs.io/
-.. _CFFI: http://cffi.readthedocs.io/
-.. _soundfile: http://pysoundfile.readthedocs.io/
-
 Installation
 ------------
 
-::
+On Windows, macOS, and Linux you can install a precompiled wheel with::
+
+    python3 -m pip install rtmixer
+
+This will install ``rtmixer`` and its dependencies, including ``sounddevice``.
+
+.. note:: On Linux, to use ``sounddevice`` and ``rtmixer`` you will need to
+          have PortAudio installed, e.g. via ``sudo apt install libportaudio2``.
+          On other platforms, PortAudio comes bundled with ``sounddevice``.
+
+Developers can install in editable mode with some variant of::
 
     git clone https://github.com/spatialaudio/python-rtmixer
     cd python-rtmixer
     git submodule update --init
-    python3 -m pip install -e . --user
+    python3 -m pip install -e .
 
 Usage
 -----
 
-See the examples in the `examples/` directory.
+See the list of `examples on GitHub`_.
+
+.. _PortAudio: http://portaudio.com/
+.. _sounddevice: http://python-sounddevice.readthedocs.io/
+.. _CFFI: http://cffi.readthedocs.io/
+.. _soundfile: http://pysoundfile.readthedocs.io/
+.. _examples on GitHub: https://github.com/spatialaudio/python-rtmixer/tree/master/examples
