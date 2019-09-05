@@ -61,7 +61,7 @@ jobs:
         artifact: deployWindows
 - job: deployPyPI
   pool: {vmImage: 'Ubuntu-16.04'}
-  condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/v'))
+  condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
   dependsOn:
     - linux
     - macos
