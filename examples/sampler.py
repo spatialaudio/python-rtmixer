@@ -52,8 +52,8 @@ class MiniSampler(tk.Tk, tkhelper.KeyEventDebouncer):
             self.rec_display['bg'] = REC_ON
 
     def on_key_press(self, event):
-        ch = event.char
-        if ch.isupper():
+        ch = event.keysym
+        if len(ch) == 1 and ch.isupper():
             sample = self.samples[ch.lower()]
             if sample.action in self.stream.actions:
                 return
@@ -72,7 +72,7 @@ class MiniSampler(tk.Tk, tkhelper.KeyEventDebouncer):
 
     def on_key_release(self, event):
         # NB: State of "shift" button may change between key press and release!
-        ch = event.char.lower()
+        ch = event.keysym.lower()
         if ch not in self.samples:
             return
         sample = self.samples[ch]
@@ -94,7 +94,7 @@ class MiniSampler(tk.Tk, tkhelper.KeyEventDebouncer):
             # We might end up here if on_key_press() exits early
             pass
         else:
-            assert False, (event.char, sample.action)
+            assert False, (event.keysym, sample.action)
 
     def poll_ringbuffer(self, sample):
         # Setting polling rate based on input latency (which may change!).
