@@ -6,5 +6,6 @@ recursive-include doc *.rst *.py
 recursive-include examples *.py
 include portaudio/LICENSE.txt
 include portaudio/index.html
+include portaudio/include/portaudio.h
 include portaudio/src/common/pa_ringbuffer.h
 include portaudio/src/common/pa_memorybarrier.h
