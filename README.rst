@@ -90,6 +90,7 @@ This will install ``rtmixer`` and its dependencies, including ``sounddevice``.
 
 Developers can install in editable mode with some variant of::
 
+    sudo apt install portaudio19-dev
     git clone https://github.com/spatialaudio/python-rtmixer
     cd python-rtmixer
     git submodule update --init
