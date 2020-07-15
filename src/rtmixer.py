@@ -38,14 +38,14 @@ class _Base(_sd._StreamBase):
             callback=callback, userdata=self._state, **kwargs)
         self._state.samplerate = self.samplerate
 
-        self._actions = set()
+        self._actions = {}
         self._temp_action_ptr = _ffi.new('struct action**')
 
     @property
     def actions(self):
         """The set of active "actions"."""
         self._drain_result_q()
-        return self._actions
+        return self._actions.keys()
 
     @property
     def stats(self):
@@ -115,19 +115,20 @@ class _Base(_sd._StreamBase):
             raise ValueError('Channel numbers start with 1')
         return channels, mapping
 
-    def _enqueue(self, action):
+    def _enqueue(self, action, keep_alive=None):
         self._drain_result_q()
         self._temp_action_ptr[0] = action
         ret = self._action_q.write(self._temp_action_ptr)
         if ret != 1:
             raise RuntimeError('Action queue is full')
-        self._actions.add(action)
+        assert action not in self._actions
+        self._actions[action] = keep_alive
 
     def _drain_result_q(self):
         """Get actions from the result queue and discard them."""
         while self._result_q.readinto(self._temp_action_ptr):
             try:
-                self._actions.remove(self._temp_action_ptr[0])
+                del self._actions[self._temp_action_ptr[0]]
             except KeyError:
                 assert False
 
@@ -170,7 +171,7 @@ class Mixer(_Base):
             channels=channels,
             mapping=mapping,
         ))
-        self._enqueue(action)
+        self._enqueue(action, keep_alive=buffer)
         return action
 
     def play_ringbuffer(self, ringbuffer, channels=None, start=0,
@@ -196,7 +197,7 @@ class Mixer(_Base):
             channels=channels,
             mapping=mapping,
         ))
-        self._enqueue(action)
+        self._enqueue(action, keep_alive=ringbuffer)
         return action
 
 
@@ -235,7 +236,7 @@ class Recorder(_Base):
             channels=channels,
             mapping=mapping,
         ))
-        self._enqueue(action)
+        self._enqueue(action, keep_alive=buffer)
         return action
 
     def record_ringbuffer(self, ringbuffer, channels=None, start=0,
@@ -261,7 +262,7 @@ class Recorder(_Base):
             channels=channels,
             mapping=mapping,
         ))
-        self._enqueue(action)
+        self._enqueue(action, keep_alive=ringbuffer)
         return action
 
 
