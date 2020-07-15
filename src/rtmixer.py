@@ -39,7 +39,8 @@ class _Base(_sd._StreamBase):
         self._state.samplerate = self.samplerate
 
         self._actions = set()
-        self._temp_action_ptr = _ffi.new('struct action**')
+        self._temp_enqueue_ptr = _ffi.new('struct action**')
+        self._temp_drain_ptr = _ffi.new('struct action**')
 
     @property
     def actions(self):
@@ -59,7 +60,7 @@ class _Base(_sd._StreamBase):
             raise RuntimeError('Accessing .stats on an active stream')
         return _ffi.new('struct stats*', self._state.stats)
 
-    def cancel(self, action, time=0, allow_belated=True):
+    def cancel(self, action, time=0, allow_belated=True, sleeptime=None):
         """Initiate stopping a running action.
 
         This creates another action that is sent to the callback in
@@ -76,10 +77,11 @@ class _Base(_sd._StreamBase):
             requested_time=time,
             action=action,
         ))
-        self._enqueue(cancel_action)
+        self._enqueue(cancel_action, sleeptime)
         return cancel_action
 
-    def fetch_and_reset_stats(self, time=0, allow_belated=True):
+    def fetch_and_reset_stats(self, time=0, allow_belated=True,
+                              sleeptime=None):
         """Fetch and reset over-/underflow statistics of the stream.
 
         """
@@ -88,7 +90,7 @@ class _Base(_sd._StreamBase):
             allow_belated=allow_belated,
             requested_time=time,
         ))
-        self._enqueue(action)
+        self._enqueue(action, sleeptime)
         return action
 
     def wait(self, action, sleeptime=10):
@@ -115,19 +117,23 @@ class _Base(_sd._StreamBase):
             raise ValueError('Channel numbers start with 1')
         return channels, mapping
 
-    def _enqueue(self, action):
-        self._drain_result_q()
-        self._temp_action_ptr[0] = action
-        ret = self._action_q.write(self._temp_action_ptr)
-        if ret != 1:
-            raise RuntimeError('Action queue is full')
+    def _enqueue(self, action, sleeptime=None):
+        self._temp_enqueue_ptr[0] = action
+        while True:
+            self._drain_result_q()
+            result = self._action_q.write(self._temp_enqueue_ptr)
+            if result == 1:
+                break
+            if sleeptime is None:
+                raise RuntimeError('Action queue is full')
+            _sd.sleep(sleeptime)
         self._actions.add(action)
 
     def _drain_result_q(self):
         """Get actions from the result queue and discard them."""
-        while self._result_q.readinto(self._temp_action_ptr):
+        while self._result_q.readinto(self._temp_drain_ptr):
             try:
-                self._actions.remove(self._temp_action_ptr[0])
+                self._actions.remove(self._temp_drain_ptr[0])
             except KeyError:
                 assert False
 
@@ -152,7 +158,8 @@ class Mixer(_Base):
         _Base.__init__(self, kind='output', **kwargs)
         self._state.output_channels = self.channels
 
-    def play_buffer(self, buffer, channels, start=0, allow_belated=True):
+    def play_buffer(self, buffer, channels, start=0, allow_belated=True,
+                    sleeptime=None):
         """Send a buffer to the callback to be played back.
 
         After that, the *buffer* must not be written to anymore.
@@ -170,11 +177,11 @@ class Mixer(_Base):
             channels=channels,
             mapping=mapping,
         ))
-        self._enqueue(action)
+        self._enqueue(action, sleeptime)
         return action
 
     def play_ringbuffer(self, ringbuffer, channels=None, start=0,
-                        allow_belated=True):
+                        allow_belated=True, sleeptime=None):
         """Send a `RingBuffer` to the callback to be played back.
 
         By default, the number of channels is obtained from the ring
@@ -196,7 +203,7 @@ class Mixer(_Base):
             channels=channels,
             mapping=mapping,
         ))
-        self._enqueue(action)
+        self._enqueue(action, sleeptime)
         return action
 
 
@@ -219,7 +226,8 @@ class Recorder(_Base):
         _Base.__init__(self, kind='input', **kwargs)
         self._state.input_channels = self.channels
 
-    def record_buffer(self, buffer, channels, start=0, allow_belated=True):
+    def record_buffer(self, buffer, channels, start=0, allow_belated=True,
+                      sleeptime=None):
         """Send a buffer to the callback to be recorded into.
 
         """
@@ -235,11 +243,11 @@ class Recorder(_Base):
             channels=channels,
             mapping=mapping,
         ))
-        self._enqueue(action)
+        self._enqueue(action, sleeptime)
         return action
 
     def record_ringbuffer(self, ringbuffer, channels=None, start=0,
-                          allow_belated=True):
+                          allow_belated=True, sleeptime=None):
         """Send a `RingBuffer` to the callback to be recorded into.
 
         By default, the number of channels is obtained from the ring
@@ -261,7 +269,7 @@ class Recorder(_Base):
             channels=channels,
             mapping=mapping,
         ))
-        self._enqueue(action)
+        self._enqueue(action, sleeptime)
         return action
 
 
