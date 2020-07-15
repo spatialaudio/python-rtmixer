@@ -91,15 +91,21 @@ class _Base(_sd._StreamBase):
         self._enqueue(action)
         return action
 
-    def wait(self, action, sleeptime=10):
+    def wait(self, action=None, sleeptime=10):
         """Wait for *action* to be finished.
 
         Between repeatedly checking if the action is finished, this
         waits for *sleeptime* milliseconds.
 
+        If no *action* is given, this waits for all actions.
+
         """
-        while action in self.actions:
-            _sd.sleep(sleeptime)
+        if action is None:
+            while self.actions:
+                _sd.sleep(sleeptime)
+        else:
+            while action in self.actions:
+                _sd.sleep(sleeptime)
 
     def _check_channels(self, channels, kind):
         """Check if number of channels or mapping was given."""
