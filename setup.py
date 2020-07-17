@@ -14,6 +14,7 @@ setup(
     package_dir={'': 'src'},
     py_modules=['rtmixer'],
     cffi_modules=['rtmixer_build.py:ffibuilder'],
+    python_requires='>=2.6',
     setup_requires=[
         'CFFI>=1.4.0',
         'pa_ringbuffer',  # for cdef()
@@ -29,7 +30,7 @@ setup(
     long_description=open('README.rst').read(),
     license='MIT',
     keywords='sound audio PortAudio realtime low-latency'.split(),
-    url='http://python-rtmixer.readthedocs.io/',
+    url='https://python-rtmixer.readthedocs.io/',
     platforms='any',
     classifiers=[
         'License :: OSI Approved :: MIT License',
