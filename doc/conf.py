@@ -28,6 +28,13 @@ intersphinx_mapping = {
     'sounddevice': ('https://python-sounddevice.readthedocs.io/', None),
 }
 
+nitpicky = True
+nitpick_ignore = [
+    ('py:class', 'optional'),
+    ('py:class', 'buffer'),
+    ('py:class', 'CData pointer'),
+]
+
 try:
     release = check_output(['git', 'describe', '--tags', '--always'])
     release = release.decode().strip()
