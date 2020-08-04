@@ -1,0 +1,10 @@
+version: 2
+build:
+  image: latest
+python:
+  version: 3
+  install:
+    - requirements: doc/requirements.txt
+  system_packages: true
+formats:
+  - pdf
