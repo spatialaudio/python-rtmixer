@@ -11,6 +11,11 @@ sys.modules['sounddevice'] = sys.modules['fake_sounddevice']
 import fake_rtmixer
 sys.modules['_rtmixer'] = sys.modules['fake_rtmixer']
 
+authors = 'Matthias Geier'
+project = 'python-rtmixer'
+
+default_role = 'any'
+
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.intersphinx',
@@ -19,16 +24,9 @@ extensions = [
 
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
-    'numpy': ('https://docs.scipy.org/doc/numpy/', None),
-    'sounddevice':
-        ('http://python-sounddevice.readthedocs.io/en/latest/', None),
+    'numpy': ('https://numpy.org/doc/stable/', None),
+    'sounddevice': ('https://python-sounddevice.readthedocs.io/', None),
 }
-
-master_doc = 'index'
-
-authors = 'Matthias Geier'
-project = 'python-rtmixer'
-copyright = '2017, ' + authors
 
 try:
     release = check_output(['git', 'describe', '--tags', '--always'])
@@ -39,9 +37,9 @@ except Exception:
     release = '<unknown>'
     today = '<unknown date>'
 
-pygments_style = 'sphinx'
 html_theme = 'sphinx_rtd_theme'
 html_domain_indices = False
+html_show_copyright = False
 
 latex_elements = {
     'papersize': 'a4paper',
