@@ -1,6 +1,6 @@
 """Reliable low-latency audio playback and recording.
 
-http://python-rtmixer.readthedocs.io/
+https://python-rtmixer.readthedocs.io/
 
 """
 __version__ = '0.1.1'
