@@ -25,5 +25,5 @@ Somewhat similar projects
     * http://www.pygame.org/docs/ref/mixer.html
 
 .. _PortAudio: http://portaudio.com/
-.. _sounddevice: http://python-sounddevice.readthedocs.io/
-.. _CFFI: http://cffi.readthedocs.io/
+.. _sounddevice: https://python-sounddevice.readthedocs.io/
+.. _CFFI: https://cffi.readthedocs.io/
