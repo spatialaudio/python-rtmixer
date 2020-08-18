@@ -1,7 +1,15 @@
 API Documentation
 =================
 
-.. automodule:: rtmixer
+.. module:: rtmixer
+
+.. autosummary::
+   :nosignatures:
+
+   Mixer
+   Recorder
+   MixerAndRecorder
+   RingBuffer
 
 .. autoclass:: Mixer
    :members: play_buffer, play_ringbuffer, actions, cancel, wait, stats,
