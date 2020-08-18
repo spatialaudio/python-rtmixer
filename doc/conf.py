@@ -44,9 +44,11 @@ except Exception:
     release = '<unknown>'
     today = '<unknown date>'
 
-html_theme = 'sphinx_rtd_theme'
+html_theme = 'insipid'
 html_domain_indices = False
 html_show_copyright = False
+html_add_permalinks = '\N{SECTION SIGN}'
+html_copy_source = False
 
 latex_elements = {
     'papersize': 'a4paper',

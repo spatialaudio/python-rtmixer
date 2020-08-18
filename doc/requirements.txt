@@ -1,3 +1,2 @@
+insipid-sphinx-theme
 pa-ringbuffer
-sphinx_rtd_theme
-sphinx>=2
