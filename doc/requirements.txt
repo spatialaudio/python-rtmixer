@@ -1,2 +1,3 @@
 insipid-sphinx-theme
 pa-ringbuffer
+sphinx-last-updated-by-git

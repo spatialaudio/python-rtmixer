@@ -21,6 +21,7 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.intersphinx',
     'sphinx.ext.viewcode',
+    'sphinx_last_updated_by_git',
 ]
 
 intersphinx_mapping = {
