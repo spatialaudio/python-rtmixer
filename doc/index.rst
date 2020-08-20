@@ -8,6 +8,8 @@
     installation
     usage
     api
+    contributing
+    version-history
 
 .. only:: html
 
