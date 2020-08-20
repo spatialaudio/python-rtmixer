@@ -14,7 +14,7 @@ setup(
     package_dir={'': 'src'},
     py_modules=['rtmixer'],
     cffi_modules=['rtmixer_build.py:ffibuilder'],
-    python_requires='>=2.6',
+    python_requires='>=3.6',
     setup_requires=[
         'CFFI>=1.4.0',
         'pa_ringbuffer',  # for cdef()
@@ -36,7 +36,6 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 3',
         'Topic :: Multimedia :: Sound/Audio',
     ],
