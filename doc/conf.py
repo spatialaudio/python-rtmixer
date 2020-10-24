@@ -51,6 +51,7 @@ html_domain_indices = False
 html_show_copyright = False
 html_add_permalinks = '\N{SECTION SIGN}'
 html_copy_source = False
+html_favicon = 'favicon.svg'
 
 latex_elements = {
     'papersize': 'a4paper',
