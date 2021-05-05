@@ -39,7 +39,7 @@ If not, you can get the submodule with::
 
    git submodule update --init
 
-.. _PyPI: https://pypi.org/project/python-rtmixer/
+.. _PyPI: https://pypi.org/project/rtmixer/
 
 
 Building the Documentation
