@@ -38,6 +38,12 @@ jobs:
             path: build/sphinx/html/
             destination: html
 
+        # Check for broken links
+        - run:
+            name: linkcheck
+            command: |
+              python setup.py build_sphinx -b linkcheck
+
 workflows:
   version: 2
 
