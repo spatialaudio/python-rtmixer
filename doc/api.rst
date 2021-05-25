@@ -32,7 +32,28 @@ Common parameters that are shared by most commands:
 
 All commands return a corresponding "action", which can be compared against the
 active `actions`, and can be used  as input for `cancel()` and `wait()`.
+The fields of action objects are defined in C but can be accessed with
+Python (e.g. ``my_action.stats.min_blocksize``)
+*after* the command is finished:
 
+.. literalinclude:: ../src/rtmixer.h
+   :language: c
+   :start-at: struct action
+   :end-at: flexible array member
+   :append: };
+
+The ``stats`` field contains some statistics collected during playback/recording
+(again, *after* the command is finished):
+
+.. literalinclude:: ../src/rtmixer.h
+   :language: c
+   :start-at: struct stats
+   :end-at: }
+
+These statistics are also collected for the whole runtime of a stream,
+where they are available as `stats` attribute (but only if the stream is
+*inactive*).  The statistics of an *active* stream can be obtained
+(and at the same time reset) with `fetch_and_reset_stats()`.
 
 .. autoclass:: Mixer
    :members: play_buffer, play_ringbuffer, actions, cancel, wait, stats,

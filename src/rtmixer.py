@@ -82,6 +82,9 @@ class _Base(_sd._StreamBase):
     def fetch_and_reset_stats(self, time=0, allow_belated=True):
         """Fetch and reset over-/underflow statistics of the stream.
 
+        The statistics will be available in the ``stats`` field of the
+        returned action.
+
         """
         action = _ffi.new('struct action*', dict(
             type=FETCH_AND_RESET_STATS,
