@@ -86,8 +86,12 @@ except KeyboardInterrupt:
 except RuntimeError as e:
     print('=== Error:', e)
 
-print('  recorded blocks:', record_action.stats.blocks)
-print('    played blocks:', play_action.stats.blocks)
+print('  recorded blocks:', record_action.stats.blocks, end='')
+print(' (min/max size: {0.min_blocksize}/{0.max_blocksize})'.format(
+    record_action.stats))
+print('    played blocks:', play_action.stats.blocks, end='')
+print(' (min/max size: {0.min_blocksize}/{0.max_blocksize})'.format(
+    play_action.stats))
 print('        DSP calls:', dsp_calls)
 print(' input underflows:', stream.stats.input_underflows)
 print(' input  overflows:', stream.stats.input_overflows)
