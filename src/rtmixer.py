@@ -162,7 +162,7 @@ class Mixer(_Base):
     def play_buffer(self, buffer, channels, start=0, allow_belated=True):
         """Send a buffer to the callback to be played back.
 
-        After that, the *buffer* must not be written to anymore.
+        After calling this, the *buffer* must not be written to anymore.
 
         """
         channels, mapping = self._check_channels(channels, 'output')
