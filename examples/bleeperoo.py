@@ -90,7 +90,6 @@ min_delay = np.inf
 max_delay = -np.inf
 for action in actionlist:
     assert action.type == rtmixer.PLAY_BUFFER
-    # NB: action.allow_belated might have been invalidated
     assert action.requested_time != 0
     if not action.actual_time:
         belated += 1

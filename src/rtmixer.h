@@ -34,9 +34,8 @@ struct stats
 struct action
 {
   const enum actiontype type;
-  bool allow_belated;  // NB: Might be invalidated in the callback function!
   const PaTime requested_time;
-  PaTime actual_time;
+  PaTime actual_time;  // Set != 0.0 to allow belated actions
   struct action* next;  // Used to create singly linked list of actions
   union {
     float* const buffer;
