@@ -6,9 +6,6 @@ typedef unsigned long PaStreamCallbackFlags;
 
 typedef unsigned long frame_t;
 struct PaUtilRingBuffer;
-typedef _Bool bool;
-#define true 1
-#define false 0
 
 enum actiontype
 {
