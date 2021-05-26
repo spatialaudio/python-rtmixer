@@ -42,9 +42,11 @@ Planned Features
 Out Of Scope
 ------------
 
-* reading from/writing to files (use e.g. the soundfile_ module)
+* reading from/writing to files (use e.g. the soundfile_ module instead)
 
-* realtime signal processing (inside the audio callback)
+* realtime signal processing inside the audio callback
+  (ring buffers can be used as a work-around,
+  see the signal_processing.py_ example)
 
 * signal generators
 
@@ -60,3 +62,5 @@ Out Of Scope
 * audio/video synchronization
 
 .. _soundfile: https://python-soundfile.readthedocs.io/
+.. _signal_processing.py: https://github.com/spatialaudio/python-rtmixer/
+   blob/master/examples/signal_processing.py
