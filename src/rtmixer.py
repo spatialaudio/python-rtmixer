@@ -72,7 +72,7 @@ class _Base(_sd._StreamBase):
         """
         cancel_action = _ffi.new('struct action*', dict(
             type=CANCEL,
-            allow_belated=allow_belated,
+            actual_time=-1.0 if allow_belated else 0.0,
             requested_time=time,
             action=action,
         ))
@@ -88,7 +88,7 @@ class _Base(_sd._StreamBase):
         """
         action = _ffi.new('struct action*', dict(
             type=FETCH_AND_RESET_STATS,
-            allow_belated=allow_belated,
+            actual_time=-1.0 if allow_belated else 0.0,
             requested_time=time,
         ))
         self._enqueue(action)
@@ -173,7 +173,7 @@ class Mixer(_Base):
         _, samplesize = _sd._split(self.samplesize)
         action = _ffi.new('struct action*', dict(
             type=PLAY_BUFFER,
-            allow_belated=allow_belated,
+            actual_time=-1.0 if allow_belated else 0.0,
             requested_time=start,
             buffer=_ffi.cast('float*', buffer),
             total_frames=len(buffer) // channels // samplesize,
@@ -199,7 +199,7 @@ class Mixer(_Base):
             raise ValueError('Incompatible elementsize')
         action = _ffi.new('struct action*', dict(
             type=PLAY_RINGBUFFER,
-            allow_belated=allow_belated,
+            actual_time=-1.0 if allow_belated else 0.0,
             requested_time=start,
             ringbuffer=ringbuffer._ptr,
             total_frames=ULONG_MAX,
@@ -238,7 +238,7 @@ class Recorder(_Base):
         samplesize, _ = _sd._split(self.samplesize)
         action = _ffi.new('struct action*', dict(
             type=RECORD_BUFFER,
-            allow_belated=allow_belated,
+            actual_time=-1.0 if allow_belated else 0.0,
             requested_time=start,
             buffer=_ffi.cast('float*', buffer),
             total_frames=len(buffer) // channels // samplesize,
@@ -264,7 +264,7 @@ class Recorder(_Base):
             raise ValueError('Incompatible elementsize')
         action = _ffi.new('struct action*', dict(
             type=RECORD_RINGBUFFER,
-            allow_belated=allow_belated,
+            actual_time=-1.0 if allow_belated else 0.0,
             requested_time=start,
             ringbuffer=ringbuffer._ptr,
             total_frames=ULONG_MAX,

@@ -160,7 +160,7 @@ int callback(const void* input, void* output, frame_t frameCount
 
           // Due to inaccuracies in timeInfo, "diff" might have a small negative
           // value in a future block.  We don't count this as "belated" though:
-          action->allow_belated = true;
+          action->actual_time = -1.0;
           actionaddr = &(action->next);
           continue;
         }
@@ -170,9 +170,9 @@ int callback(const void* input, void* output, frame_t frameCount
       else
       {
         // We are too late!
-        if (!action->allow_belated)
+        if (action->actual_time == 0.0)
         {
-          action->actual_time = 0.0;  // a.k.a. "false"
+          // allow_belated == False
           remove_action(actionaddr, state);
           continue;
         }
@@ -213,8 +213,10 @@ int callback(const void* input, void* output, frame_t frameCount
             }
             else
             {
-              if (!delinquent->allow_belated)
+              if (delinquent->actual_time == 0.0)
               {
+                // allow_belated == False
+
                 // TODO: save some status information?
                 break;  // The action will not be started, no need to cancel it
               }
