@@ -23,12 +23,16 @@ Common parameters that are shared by most commands:
    The actual time will be stored in the ``actual_time`` field of the
    returned action.
 
+``channels``
+   This can be either the desired number of channels or a list of (1-based)
+   channel numbers that is used as a channel map for playback/recording.
+
 ``allow_belated``
    Use ``False`` to cancel the command in case the requested time cannot be met.
    The ``actual_time`` field will be set to ``0.0`` in this case.
    Use ``True`` to execute the command nevertheless.
    Even if the requested time was met, the ``actual_time`` might be slightly
-   different due to rounding.
+   different due to rounding to the next audio sample.
 
 All commands return a corresponding "action", which can be compared against the
 active `actions`, and can be used  as input for `cancel()` and `wait()`.
