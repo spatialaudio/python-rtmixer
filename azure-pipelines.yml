@@ -8,11 +8,11 @@ trigger:
       - '*'
 variables:
   CIBW_BUILDING: "true"
-  # docker 686 image does not support "yum install portaudio"
-  CIBW_SKIP: "cp27-* cp34-* cp35-* pp27-* *-manylinux_i686"
+  CIBW_SKIP: "cp27-* cp34-* cp35-* pp27-*"
+  CIBW_TEST_SKIP: "*-manylinux_i686"  # docker 686 image does not support "yum install portaudio"
   CIBW_TEST_COMMAND: "python -c \"import rtmixer; print(rtmixer.__version__)\""
   CIBW_BUILD_VERBOSITY: "3"
-  CIBW_BEFORE_BUILD_LINUX: "yum install -y portaudio && pip install -U pip setuptools"
+  CIBW_BEFORE_BUILD_LINUX: "pip install -U pip setuptools"
   CIBW_BEFORE_TEST_LINUX: "yum install -y portaudio"
 jobs:
 - job: linux
