@@ -14,7 +14,7 @@ variables:
   CIBW_BEFORE_BUILD_LINUX: "yum install -y portaudio; pip install -U pip setuptools"
 jobs:
 - job: linux
-  pool: {vmImage: 'Ubuntu-16.04'}
+  pool: {vmImage: 'Ubuntu-18.04'}
   steps:
     - task: UsePythonVersion@0
     - bash: |
@@ -62,7 +62,7 @@ jobs:
         path: $(System.DefaultWorkingDirectory)/wheelhouse
         artifact: deployWindows
 - job: deployPyPI
-  pool: {vmImage: 'Ubuntu-16.04'}
+  pool: {vmImage: 'Ubuntu-18.04'}
   condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
   dependsOn:
     - linux
