@@ -14,7 +14,7 @@ setup(
     package_dir={'': 'src'},
     py_modules=['rtmixer'],
     cffi_modules=['rtmixer_build.py:ffibuilder'],
-    python_requires='>=3.7',
+    python_requires='>=3.6',
     setup_requires=[
         'CFFI>=1.4.0',
         'pa_ringbuffer',  # for cdef()
