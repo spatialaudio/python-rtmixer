@@ -31,18 +31,18 @@ jobs:
         - run:
             name: make html
             command: |
-              python setup.py build_sphinx
+              python -m sphinx doc _build
 
         # Save the outputs
         - store_artifacts:
-            path: build/sphinx/html/
+            path: _build
             destination: html
 
         # Check for broken links
         - run:
             name: linkcheck
             command: |
-              python setup.py build_sphinx -b linkcheck
+              python -m sphinx doc _build -b linkcheck
 
 workflows:
   version: 2
