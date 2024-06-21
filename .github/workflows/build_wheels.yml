@@ -1,0 +1,24 @@
+# from https://cibuildwheel.pypa.io/en/stable/setup/#github-actions
+name: Build
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+  release:
+    types: [published]
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event.number }}-${{ github.event.ref }}
+    cancel-in-progress: true
+
+jobs:
+  build_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        # macos-13 is an intel runner, macos-14 is apple silicon
+        os: [ubuntu-latest, windows-latest, macos-13, macos-14]
+    steps:
+      - uses: actions/checkout@v4
