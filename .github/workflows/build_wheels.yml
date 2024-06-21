@@ -30,8 +30,6 @@ jobs:
           CIBW_BUILDING: "true"
           CIBW_ARCHS: "native"  # simplest for now
           CIBW_SKIP: "cp36-* cp37-* pp*"
-          CIBW_BEFORE_ALL_LINUX: "yum install -y portaudio"
-          CIBW_BEFORE_ALL_MACOS: "brew install portaudio"
           CIBW_TEST_COMMAND: "python -c \"import rtmixer; print(rtmixer.__version__)\""
           CIBW_BUILD_VERBOSITY: "3"
           CIBW_BEFORE_TEST_LINUX: "yum install -y portaudio"
