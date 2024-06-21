@@ -1,0 +1,60 @@
+# from https://cibuildwheel.pypa.io/en/stable/setup/#github-actions
+name: Build
+
+on: [push, pull_request, release]
+
+jobs:
+  build_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        # macos-13 is an intel runner, macos-14 is apple silicon
+        os: [ubuntu-latest, windows-latest, macos-13, macos-14]
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.19.1
+        env:
+          CIBW_BUILDING: "true"
+          CIBW_ARCHS: "native"  # simplest for now
+          CIBW_SKIP: "cp36-* cp37-* pp*"
+          CIBW_TEST_COMMAND: "python -c \"import rtmixer; print(rtmixer.__version__)\""
+          CIBW_BUILD_VERBOSITY: "3"
+          CIBW_BEFORE_TEST_LINUX: "yum install -y portaudio"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
+          path: ./wheelhouse/*.whl
+
+  # From https://cibuildwheel.pypa.io/en/stable/deliver-to-pypi/
+  # and https://github.com/pypa/gh-action-pypi-publish?tab=readme-ov-file#trusted-publishing
+  make_sdist:
+    name: Make SDist
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - run: pipx run build --sdist
+    - uses: actions/upload-artifact@v4
+      with:
+        name: cibw-sdist
+        path: dist/*.tar.gz
+
+  pypi-publish:
+    name: Upload release to PyPI
+    needs: [build_wheels, make_sdist]
+    environment:
+      name: pypi
+      url: https://pypi.org/p/rtmixer
+    permissions:
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/download-artifact@v4
+      with:
+        pattern: cibw-*
+        path: dist
+        merge-multiple: true
+    - uses: pypa/gh-action-pypi-publish@release/v1
+      if: github.event_name == 'release' && github.event.action == 'published'
