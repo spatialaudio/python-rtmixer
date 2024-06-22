@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -eo pipefail
+set -xeo pipefail
 
 dnf config-manager --set-enabled powertools || 1
 dnf install epel-release || 1
