@@ -87,6 +87,7 @@ jobs:
   pypi-publish:
     name: Upload release to PyPI
     needs: [build_wheels, make_sdist]
+    if: github.event_name == 'release' && github.event.action == 'published'
     environment:
       name: pypi
       url: https://pypi.org/p/rtmixer
@@ -101,4 +102,3 @@ jobs:
         merge-multiple: true
     - run: ls -al dist/*
     - uses: pypa/gh-action-pypi-publish@release/v1
-      if: github.event_name == 'release' && github.event.action == 'published'
