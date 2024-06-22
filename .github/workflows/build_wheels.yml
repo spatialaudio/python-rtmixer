@@ -14,28 +14,43 @@ concurrency:
 
 jobs:
   build_wheels:
-    name: Build wheels on ${{ matrix.os }}
+    name: Build ${{ matrix.arch }} wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     continue-on-error: true
     strategy:
       matrix:
         # macos-13 is an intel runner, macos-14 is apple silicon
         os: [ubuntu-latest, windows-latest, macos-13, macos-14]
+        arch: [native]
+        python: ["*"]
+        # Split aarch64 across jobs because it uses emulation (slow)
+        include:
+          - os: ubuntu-latest
+            arch: aarch64
+            python: ["37", "38", "39", "310", "311", "312"]
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: true
+      # Linux emulation for aarch64 support
+      # https://cibuildwheel.pypa.io/en/stable/faq/#emulation
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: all
+        if: runner.os == 'Linux' && matrix.arch == 'aarch64'
       - uses: pypa/cibuildwheel@v2.19.1
         env:
           CIBW_BUILDING: "true"
-          CIBW_ARCHS: "native"  # simplest for now
-          CIBW_SKIP: "cp36-* cp37-* pp*"
+          CIBW_ARCHS: ${{ matrix.arch }}  # simplest for now
+          CIBW_SKIP: "*p36-* *p37-*"
+          CIBW_BUILD: "*p${{ matrix.python }}-*"
           CIBW_TEST_COMMAND: "python -c \"import rtmixer; print(rtmixer.__version__)\""
+          CIBW_TEST_SKIP: "*-musllinux*"  # no portaudio on musllinux
           CIBW_BUILD_VERBOSITY: "3"
           CIBW_BEFORE_TEST_LINUX: "yum install -y portaudio"
       - uses: actions/upload-artifact@v4
         with:
-          name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
+          name: cibw-wheels-${{ matrix.os }}-${{ matrix.arch}}-${{ strategy.job-index }}
           path: ./wheelhouse/*.whl
 
   # From https://cibuildwheel.pypa.io/en/stable/deliver-to-pypi/
@@ -66,5 +81,6 @@ jobs:
         pattern: cibw-*
         path: dist
         merge-multiple: true
+    - run: ls -al dist/*
     - uses: pypa/gh-action-pypi-publish@release/v1
       if: github.event_name == 'release' && github.event.action == 'published'
