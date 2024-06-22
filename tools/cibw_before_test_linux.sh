@@ -2,6 +2,8 @@
 
 set -xeo pipefail
 
-dnf config-manager --set-enabled powertools || 1
-dnf install epel-release || 1
+if [[ "$(cat /etc/redhat-release)" == 'AlmaLinux'* ]]; then
+    dnf config-manager --set-enabled powertools
+    dnf install epel-release
+fi
 yum install -y portaudio
