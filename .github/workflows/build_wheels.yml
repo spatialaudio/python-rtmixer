@@ -27,7 +27,19 @@ jobs:
         include:
           - os: ubuntu-latest
             arch: aarch64
-            python: ["37", "38", "39", "310", "311", "312"]
+            python: "38"
+          - os: ubuntu-latest
+            arch: aarch64
+            python: "39"
+          - os: ubuntu-latest
+            arch: aarch64
+            python: "310"
+          - os: ubuntu-latest
+            arch: aarch64
+            python: "311"
+          - os: ubuntu-latest
+            arch: aarch64
+            python: "312"
     steps:
       - uses: actions/checkout@v4
         with:
