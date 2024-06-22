@@ -27,7 +27,7 @@ jobs:
         include:
           - os: ubuntu-latest
             arch: i686
-            python: ["*"]
+            python: "*"
           - os: ubuntu-latest
             arch: aarch64
             python: "38"
