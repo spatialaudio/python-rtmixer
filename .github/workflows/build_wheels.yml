@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   build_wheels:
-    name: ${{ matrix.os }} ${{ matrix.arch }} wheels
+    name: py${{ matrix.python}} ${{ matrix.os }} ${{ matrix.arch }} wheels
     runs-on: ${{ matrix.os }}
     continue-on-error: true
     strategy:
@@ -22,12 +22,27 @@ jobs:
         # macos-13 is an intel runner, macos-14 is apple silicon
         os: [ubuntu-latest, windows-latest, macos-13, macos-14]
         arch: [native]
+        python: ["*"]
         # Split aarch64 across jobs because it uses emulation (slow)
         include:
           - os: ubuntu-latest
             arch: i686
+            python: ["*"]
           - os: ubuntu-latest
             arch: aarch64
+            python: "38"
+          - os: ubuntu-latest
+            arch: aarch64
+            python: "39"
+          - os: ubuntu-latest
+            arch: aarch64
+            python: "310"
+          - os: ubuntu-latest
+            arch: aarch64
+            python: "311"
+          - os: ubuntu-latest
+            arch: aarch64
+            python: "312"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -42,10 +57,13 @@ jobs:
         env:
           CIBW_BUILDING: "true"
           CIBW_ARCHS: ${{ matrix.arch }}  # simplest for now
-          CIBW_SKIP: "*p36-* *p37-*"
+          CIBW_BUILD: "{c,p}p${{ matrix.python }}-*"
+          CIBW_SKIP: "{c,p}p3{6,7}-*"
           CIBW_TEST_COMMAND: "python -c \"import rtmixer; print(rtmixer.__version__)\""
           # No portaudio on these platforms:
-          CIBW_TEST_SKIP: "*-manylinux_i686 *-musllinux *_aarch64"
+          CIBW_TEST_SKIP: "*_i686 *-musllinux_*"
+          # To enable testing we have to bump up to the Almalinux 8-based image:
+          CIBW_MANYLINUX_AARCH64_IMAGE: "manylinux_2_28"
           CIBW_BUILD_VERBOSITY: "3"
           CIBW_BEFORE_TEST_LINUX: "yum install -y portaudio"
       - uses: actions/upload-artifact@v4
