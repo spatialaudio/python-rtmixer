@@ -26,6 +26,9 @@ jobs:
         # Split aarch64 across jobs because it uses emulation (slow)
         include:
           - os: ubuntu-latest
+            arch: i686
+            python: "*"
+          - os: ubuntu-latest
             arch: aarch64
             python: "38"
           - os: ubuntu-latest
@@ -57,7 +60,7 @@ jobs:
           CIBW_SKIP: "*p36-* *p37-*"
           CIBW_BUILD: "*p${{ matrix.python }}-*"
           CIBW_TEST_COMMAND: "python -c \"import rtmixer; print(rtmixer.__version__)\""
-          CIBW_TEST_SKIP: "*-musllinux*"  # no portaudio on musllinux
+          CIBW_TEST_SKIP: "*-manylinux_i686 *-musllinux*"  # no portaudio
           CIBW_BUILD_VERBOSITY: "3"
           CIBW_BEFORE_TEST_LINUX: "yum install -y portaudio"
       - uses: actions/upload-artifact@v4
