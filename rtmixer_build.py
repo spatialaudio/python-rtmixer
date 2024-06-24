@@ -1,5 +1,6 @@
 # This is used to create the _rtmixer extension module (see setup.py).
 
+import sys
 from cffi import FFI
 import pa_ringbuffer
 
@@ -15,15 +16,16 @@ ffibuilder.cdef("""
 
 """)
 ffibuilder.cdef(open('src/rtmixer.h').read())
+# '-Wconversion'
+extra_compile_args = list()
+if sys.platform == "linux":
+    extra_compile_args.append("--std=c99")
 ffibuilder.set_source(
     '_rtmixer',
     RINGBUFFER_CDEF + open('src/rtmixer.c').read(),
     include_dirs=['src', 'portaudio/include'],
     sources=['portaudio/src/common/pa_ringbuffer.c'],
-    extra_compile_args=[
-        '--std=c99',
-        # '-Wconversion',
-    ],
+    extra_compile_args=extra_compile_args,
     # TODO: release mode by default, option for using debug mode
     undef_macros=[
         # 'NDEBUG'
