@@ -10,14 +10,15 @@ for line in open('src/rtmixer.py'):
         break
 
 
-# Adapted from https://github.com/joerick/python-abi3-package-sample/blob/main/setup.py
+# Adapted from
+# https://github.com/joerick/python-abi3-package-sample/blob/main/setup.py
 class bdist_wheel_abi3(bdist_wheel):
     def get_tag(self):
         python, abi, plat = super().get_tag()
 
         if python.startswith("cp"):
-            # on CPython, our wheels are abi3 and compatible back to 3.2, but let's
-            # set it to our min version anyway
+            # on CPython, our wheels are abi3 and compatible back to 3.2,
+            # but let's set it to our min version anyway
             return "cp38", "abi3", plat
 
         return python, abi, plat
