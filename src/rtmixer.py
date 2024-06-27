@@ -3,7 +3,7 @@
 https://python-rtmixer.readthedocs.io/
 
 """
-__version__ = '0.1.5'
+__version__ = '0.1.6'
 
 import sounddevice as _sd
 from pa_ringbuffer import init as _init_ringbuffer
