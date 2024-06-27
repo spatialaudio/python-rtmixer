@@ -48,7 +48,6 @@ jobs:
           # To enable testing we'd have to bump up to the Almalinux 8-based image:
           # CIBW_MANYLINUX_AARCH64_IMAGE: "manylinux_2_28"
           CIBW_BUILD_VERBOSITY: "3"
-          CIBW_BEFORE_BUILD: "pip install wheel"
           CIBW_BEFORE_TEST_LINUX: "bash {project}/tools/cibw_before_test_linux.sh"
           # Use abi3audit to catch issues with Limited API wheels
           CIBW_REPAIR_WHEEL_COMMAND_LINUX: "auditwheel repair -w {dest_dir} {wheel} && pipx run abi3audit --strict --report {wheel}"
