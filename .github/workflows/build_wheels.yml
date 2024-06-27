@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   build_wheels:
-    name: ${{ matrix.os }} ${{ matrix.arch }} py${{ matrix.python}} wheels
+    name: ${{ matrix.os }} ${{ matrix.arch }} wheels
     runs-on: ${{ matrix.os }}
     continue-on-error: true
     strategy:
