@@ -64,7 +64,7 @@ jobs:
           # Use abi3audit to catch issues with Limited API wheels
           CIBW_REPAIR_WHEEL_COMMAND: "bash ./tools/cibw_repair_wheel_command.sh {dest_dir} {wheel} {delocate_archs}"
           CIBW_ENVIRONMENT_PASS_LINUX: "RUNNER_OS"
-          CIBW_PROJECT_REQUIRES_PYTHON: "3.8"
+          CIBW_PROJECT_REQUIRES_PYTHON: ">=3.8"
       - uses: actions/upload-artifact@v4
         with:
           name: cibw-wheels-${{ matrix.os }}-${{ matrix.arch}}-${{ strategy.job-index }}
