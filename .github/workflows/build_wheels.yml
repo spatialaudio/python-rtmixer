@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   build_wheels:
-    name: ${{ matrix.os }} ${{ matrix.arch }} wheels
+    name: ${{ matrix.os }} ${{ matrix.arch }} ${{ matrix.python}} wheels
     runs-on: ${{ matrix.os }}
     continue-on-error: true
     strategy:
@@ -22,11 +22,24 @@ jobs:
         # macos-13 is an intel runner, macos-14 is apple silicon
         os: [ubuntu-latest, windows-latest, macos-13, macos-14]
         arch: [native]
+        python: ["{cp38,pp*}"]
+        # Split aarch64 across jobs because it uses emulation (slow)
         include:
           - os: ubuntu-latest
             arch: i686
+            python: "{cp38,pp*}"
           - os: ubuntu-latest
             arch: aarch64
+            python: "cp38"
+          - os: ubuntu-latest
+            arch: aarch64
+            python: "pp38"
+          - os: ubuntu-latest
+            arch: aarch64
+            python: "pp39"
+          - os: ubuntu-latest
+            arch: aarch64
+            python: "pp310"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -41,7 +54,8 @@ jobs:
         env:
           CIBW_BUILDING: "true"
           CIBW_ARCHS: ${{ matrix.arch }}  # simplest for now
-          CIBW_BUILD: "{c,p}p38-*"  # abi3 wheels against oldest supported version
+          CIBW_BUILD: "${{ matrix.python }}-*"
+          CIBW_SKIP: "{c,p}p3{6,7}-*"
           CIBW_TEST_COMMAND: "python -c \"import rtmixer; print(rtmixer.__version__)\""
           # No portaudio on these platforms:
           CIBW_TEST_SKIP: "*_i686 *-musllinux_* *_aarch64"
@@ -50,9 +64,7 @@ jobs:
           CIBW_BUILD_VERBOSITY: "3"
           CIBW_BEFORE_TEST_LINUX: "bash {project}/tools/cibw_before_test_linux.sh"
           # Use abi3audit to catch issues with Limited API wheels
-          CIBW_REPAIR_WHEEL_COMMAND_LINUX: "auditwheel repair -w {dest_dir} {wheel} && pipx run abi3audit --strict --report {wheel}"
-          CIBW_REPAIR_WHEEL_COMMAND_MACOS: "delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel} && pipx run abi3audit --strict --report {wheel}"
-          CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: "pipx run abi3audit --strict --report {wheel}"
+          CIBW_REPAIR_WHEEL_COMMAND: "bash {project}/tools/cibw_repair_wheel_command.sh {dest_dir} {wheel} {delocate_archs}"
       - uses: actions/upload-artifact@v4
         with:
           name: cibw-wheels-${{ matrix.os }}-${{ matrix.arch}}-${{ strategy.job-index }}
