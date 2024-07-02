@@ -54,6 +54,8 @@ jobs:
         env:
           CIBW_ARCHS: "${{ matrix.arch }}"
           CIBW_BUILD: "${{ matrix.python }}-*"
+          CIBW_MANYLINUX_X86_64_IMAGE: "quay.io/pypa/manylinux2014_x86_64:latest"
+          CIBW_MANYLINUX_AARCH64_IMAGE: "quay.io/pypa/manylinux2014_aarch64:latest"
           CIBW_TEST_COMMAND: "python -c \"import rtmixer; print(rtmixer.__version__)\""
           # No portaudio on these platforms:
           CIBW_TEST_SKIP: "*_i686 *-musllinux_* *_aarch64"
