@@ -19,27 +19,26 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # macos-13 is an intel runner, macos-14 is apple silicon
-        os: [ubuntu-latest, windows-latest, macos-13, macos-14]
+        os: [ubuntu-latest, windows-latest, macos-latest, macos-15-intel]
         arch: [native]
-        python: ["{cp38,pp*}"]
+        python: ["{cp310,pp310,pp311}"]
         # Split aarch64 across jobs because it uses emulation (slow)
         include:
           - os: ubuntu-latest
             arch: i686
-            python: "{cp38,pp*}"
+            python: "{cp310,pp310,pp311}"
           - os: ubuntu-latest
             arch: aarch64
-            python: "cp38"
-          - os: ubuntu-latest
-            arch: aarch64
-            python: "pp38"
-          - os: ubuntu-latest
-            arch: aarch64
-            python: "pp39"
+            python: "cp310"
           - os: ubuntu-latest
             arch: aarch64
             python: "pp310"
+          - os: ubuntu-latest
+            arch: aarch64
+            python: "pp3{10,11}"
+          - os: ubuntu-latest
+            arch: aarch64
+            python: "pp3{10,11}"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -50,23 +49,10 @@ jobs:
         with:
           platforms: all
         if: runner.os == 'Linux' && matrix.arch == 'aarch64'
-      - uses: pypa/cibuildwheel@v2.20.0
+      - uses: pypa/cibuildwheel@v3.3.0
         env:
           CIBW_ARCHS: "${{ matrix.arch }}"
           CIBW_BUILD: "${{ matrix.python }}-*"
-          CIBW_MANYLINUX_X86_64_IMAGE: "quay.io/pypa/manylinux2014_x86_64:latest"
-          CIBW_MANYLINUX_AARCH64_IMAGE: "quay.io/pypa/manylinux2014_aarch64:latest"
-          CIBW_TEST_COMMAND: "python -c \"import rtmixer; print(rtmixer.__version__)\""
-          # No portaudio on these platforms:
-          CIBW_TEST_SKIP: "*_i686 *-musllinux_* *_aarch64"
-          # To enable testing we'd have to bump up to the Almalinux 8-based image:
-          # CIBW_MANYLINUX_AARCH64_IMAGE: "manylinux_2_28"
-          CIBW_BUILD_VERBOSITY: "3"
-          CIBW_BEFORE_TEST_LINUX: "bash {project}/tools/cibw_before_test_linux.sh"
-          # Use abi3audit to catch issues with Limited API wheels
-          CIBW_REPAIR_WHEEL_COMMAND: "bash ./tools/cibw_repair_wheel_command.sh {dest_dir} {wheel} {delocate_archs}"
-          CIBW_ENVIRONMENT_PASS_LINUX: "RUNNER_OS"
-          CIBW_PROJECT_REQUIRES_PYTHON: ">=3.8"
       - uses: actions/upload-artifact@v4
         with:
           name: cibw-wheels-${{ matrix.os }}-${{ matrix.arch}}-${{ strategy.job-index }}
