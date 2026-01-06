@@ -19,40 +19,15 @@ class bdist_wheel_abi3(bdist_wheel):
         if python.startswith("cp"):
             # on CPython, our wheels are abi3 and compatible back to 3.2,
             # but let's set it to our min version anyway
-            return "cp38", "abi3", plat
+            return "cp310", "abi3", plat
 
         return python, abi, plat
 
 
 setup(
-    name='rtmixer',
     version=__version__,
     package_dir={'': 'src'},
     py_modules=['rtmixer'],
     cffi_modules=['rtmixer_build.py:ffibuilder'],  # sets Py_LIMITED_API for us
-    python_requires='>=3.6',
-    setup_requires=[
-        'CFFI>=1.4.0',
-        'pa_ringbuffer',  # for cdef()
-    ],
-    install_requires=[
-        'CFFI>=1',  # for _cffi_backend
-        'pa_ringbuffer',  # for init()
-        'sounddevice>0.3.9',
-    ],
-    author='Matthias Geier',
-    author_email='Matthias.Geier@gmail.com',
-    description='Reliable low-latency audio playback and recording',
-    long_description=open('README.rst').read(),
-    license='MIT',
-    keywords='sound audio PortAudio realtime low-latency'.split(),
-    url='https://python-rtmixer.readthedocs.io/',
-    platforms='any',
-    classifiers=[
-        'Operating System :: OS Independent',
-        'Programming Language :: Python',
-        'Programming Language :: Python :: 3',
-        'Topic :: Multimedia :: Sound/Audio',
-    ],
     cmdclass={"bdist_wheel": bdist_wheel_abi3},
 )

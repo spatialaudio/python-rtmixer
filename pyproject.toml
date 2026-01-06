@@ -1,3 +1,51 @@
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools", "wheel", "pa_ringbuffer", "cffi>=1.4.0"]
 build-backend = "setuptools.build_meta"
+
+[project]
+requires-python = ">=3.10"
+name = "rtmixer"
+dynamic = ["version"]
+readme = {content-type = "text/x-rst", file = "README.rst"}
+authors = [
+  {email = "Matthias.Geier@gmail.com", name = "Matthias Geier"},
+]
+description = 'Reliable low-latency audio playback and recording'
+license = 'MIT'
+keywords = [
+    "sound", "audio", "PortAudio", "realtime", "low-latency"
+]
+dependencies = [
+    'CFFI>=1',  # for _cffi_backend
+    'pa_ringbuffer',  # for init()
+    'sounddevice>0.3.9',
+]
+classifiers =[
+    'Operating System :: OS Independent',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 3',
+    'Topic :: Multimedia :: Sound/Audio',
+]
+
+[project.urls]
+"Bug Tracker" = "https://github.com/spatialaudio/python-rtmixer/issues"
+Documentation = "https://python-rtmixer.readthedocs.io"
+Homepage = "https://python-rtmixer.readthedocs.io"
+"Source Code" = "https://github.com/spatialaudio/python-rtmixer"
+
+[tool.cibuildwheel]
+enable = ["pypy"]
+manylinux-aarch64-image = "manylinux2014"
+manylinux-pypy_x86_64-image = "manylinux2014"
+manylinux-pypy_aarch64-image = "manylinux2014"
+manylinux-x86_64-image = "manylinux2014"
+test-command = "python -c \"import rtmixer; print(rtmixer.__version__)\""
+# No portaudio on these platforms:
+test-skip = "*_i686 *-musllinux_* *_aarch64"
+# To enable testing we'd have to bump up to the Almalinux 8-based image:
+# manylinux-aarch64-image = "manylinux_2_28"
+repair-wheel-command = "bash ./tools/cibw_repair_wheel_command.sh {dest_dir} {wheel} {delocate_archs}"
+
+[tool.cibuildwheel.linux]
+before-test = "bash {project}/tools/cibw_before_test_linux.sh"
+environment = { RUNNER_OS="Linux" }  # facilitate local testing
