@@ -34,7 +34,7 @@ Homepage = "https://python-rtmixer.readthedocs.io"
 "Source Code" = "https://github.com/spatialaudio/python-rtmixer"
 
 [tool.cibuildwheel]
-enable = ["pypy"]
+enable = ["pypy", "pypy-eol"]
 manylinux-aarch64-image = "manylinux2014"
 manylinux-pypy_x86_64-image = "manylinux2014"
 manylinux-pypy_aarch64-image = "manylinux2014"
