@@ -9,5 +9,7 @@ build:
 python:
   install:
     - requirements: doc/requirements.txt
+sphinx:
+  configuration: doc/conf.py
 formats:
   - pdf
