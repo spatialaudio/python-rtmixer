@@ -1,6 +1,7 @@
 /* See ../rtmixer_build.py, the ring buffer declarations are included there */
 
 #include <math.h>  // for llround()
+#include <stdbool.h>
 #include <stdio.h>  // for printf()
 #include <string.h>  // for memset()
 #include <portaudio.h>
