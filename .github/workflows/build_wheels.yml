@@ -45,11 +45,11 @@ jobs:
           submodules: true
       # Linux emulation for aarch64 support
       # https://cibuildwheel.pypa.io/en/stable/faq/#emulation
-      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-qemu-action@v4
         with:
           platforms: all
         if: runner.os == 'Linux' && matrix.arch == 'aarch64'
-      - uses: pypa/cibuildwheel@v3.3.1
+      - uses: pypa/cibuildwheel@v3.4.0
         env:
           CIBW_ARCHS: "${{ matrix.arch }}"
           CIBW_BUILD: "${{ matrix.python }}-*"
