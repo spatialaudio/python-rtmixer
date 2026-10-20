@@ -21,24 +21,19 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest, macos-15-intel]
         arch: [native]
-        python: ["{cp310,pp310,pp311}"]
+        python: ["{cp310,pp311}"]
         # Split aarch64 across jobs because it uses emulation (slow)
         include:
-          - os: ubuntu-latest
+          # DNS fails inside i686 containers on ubuntu-26.04 runners
+          - os: ubuntu-24.04
             arch: i686
-            python: "{cp310,pp310,pp311}"
+            python: "{cp310,pp311}"
           - os: ubuntu-latest
             arch: aarch64
             python: "cp310"
           - os: ubuntu-latest
             arch: aarch64
-            python: "pp310"
-          - os: ubuntu-latest
-            arch: aarch64
-            python: "pp3{10,11}"
-          - os: ubuntu-latest
-            arch: aarch64
-            python: "pp3{10,11}"
+            python: "pp311"
     steps:
       - uses: actions/checkout@v7
         with:
@@ -49,7 +44,7 @@ jobs:
         with:
           platforms: all
         if: runner.os == 'Linux' && matrix.arch == 'aarch64'
-      - uses: pypa/cibuildwheel@v4.2.1
+      - uses: pypa/cibuildwheel@v4.3.1
         env:
           CIBW_ARCHS: "${{ matrix.arch }}"
           CIBW_BUILD: "${{ matrix.python }}-*"
