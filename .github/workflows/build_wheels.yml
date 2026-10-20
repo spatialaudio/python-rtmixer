@@ -24,7 +24,8 @@ jobs:
         python: ["{cp310,pp311}"]
         # Split aarch64 across jobs because it uses emulation (slow)
         include:
-          - os: ubuntu-latest
+          # DNS fails inside i686 containers on ubuntu-26.04 runners
+          - os: ubuntu-24.04
             arch: i686
             python: "{cp310,pp311}"
           - os: ubuntu-latest
