@@ -41,6 +41,15 @@ class _Base(_sd._StreamBase):
         self._actions = {}
         self._temp_action_ptr = _ffi.new('struct action**')
 
+    def __del__(self):
+        # The C callback uses memory owned by this object, so the stream
+        # must be closed before that memory is freed.
+        try:
+            if not self.closed:
+                self.close()
+        except Exception:
+            pass  # e.g. __init__() failed or interpreter shutdown
+
     @property
     def actions(self):
         """The set of active "actions"."""
@@ -76,7 +85,8 @@ class _Base(_sd._StreamBase):
             requested_time=time,
             action=action,
         ))
-        self._enqueue(cancel_action)
+        # The callback dereferences *action*, so it must be kept alive:
+        self._enqueue(cancel_action, keep_alive=action)
         return cancel_action
 
     def fetch_and_reset_stats(self, time=0, allow_belated=True):
@@ -126,6 +136,10 @@ class _Base(_sd._StreamBase):
 
     def _enqueue(self, action, keep_alive=None):
         self._drain_result_q()
+        # Each action ends up in the result queue exactly once, so limiting
+        # the number of pending actions guarantees that it never overflows:
+        if len(self._actions) >= len(self._result_q):
+            raise RuntimeError('Too many pending actions')
         self._temp_action_ptr[0] = action
         ret = self._action_q.write(self._temp_action_ptr)
         if ret != 1:

@@ -6,3 +6,4 @@ __pycache__
 .eggs
 /dist/
 /wheelhouse/
+.DS_Store
