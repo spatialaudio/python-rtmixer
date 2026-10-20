@@ -34,16 +34,10 @@ Homepage = "https://python-rtmixer.readthedocs.io"
 "Source Code" = "https://github.com/spatialaudio/python-rtmixer"
 
 [tool.cibuildwheel]
-enable = ["pypy", "pypy-eol"]
-manylinux-aarch64-image = "manylinux2014"
-manylinux-pypy_x86_64-image = "manylinux2014"
-manylinux-pypy_aarch64-image = "manylinux2014"
-manylinux-x86_64-image = "manylinux2014"
+enable = ["pypy"]
 test-command = "python -c \"import rtmixer; print(rtmixer.__version__)\""
 # No portaudio on these platforms:
 test-skip = "*_i686 *-musllinux_* *_aarch64"
-# To enable testing we'd have to bump up to the Almalinux 8-based image:
-# manylinux-aarch64-image = "manylinux_2_28"
 repair-wheel-command = "bash ./tools/cibw_repair_wheel_command.sh {dest_dir} {wheel} {delocate_archs}"
 
 [tool.cibuildwheel.linux]
