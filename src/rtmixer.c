@@ -128,7 +128,10 @@ int callback(const void* input, void* output, frame_t frameCount
   struct state* state = userData;
   CALLBACK_ASSERT(state);
 
-  memset(output, 0, sizeof(float) * state->output_channels * frameCount);
+  if (output)  // NULL for input-only streams
+  {
+    memset(output, 0, sizeof(float) * state->output_channels * frameCount);
+  }
 
   get_stats(frameCount, statusFlags, &(state->stats));
 
