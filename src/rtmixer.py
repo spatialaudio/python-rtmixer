@@ -41,6 +41,15 @@ class _Base(_sd._StreamBase):
         self._actions = {}
         self._temp_action_ptr = _ffi.new('struct action**')
 
+    def __del__(self):
+        # The C callback uses memory owned by this object, so the stream
+        # must be closed before that memory is freed.
+        try:
+            self.abort()
+            self.close()
+        except Exception:
+            pass  # e.g. __init__() failed or interpreter shutdown
+
     @property
     def actions(self):
         """The set of active "actions"."""
@@ -76,7 +85,8 @@ class _Base(_sd._StreamBase):
             requested_time=time,
             action=action,
         ))
-        self._enqueue(cancel_action)
+        # The callback dereferences *action*, so it must be kept alive:
+        self._enqueue(cancel_action, keep_alive=action)
         return cancel_action
 
     def fetch_and_reset_stats(self, time=0, allow_belated=True):
@@ -126,6 +136,11 @@ class _Base(_sd._StreamBase):
 
     def _enqueue(self, action, keep_alive=None):
         self._drain_result_q()
+        # Each action ends up in the result queue exactly once, so limiting
+        # the number of pending actions guarantees that it never overflows:
+        if len(self._actions) >= len(self._result_q):
+            raise RuntimeError(
+                'Too many pending actions, consider increasing qsize')
         self._temp_action_ptr[0] = action
         ret = self._action_q.write(self._temp_action_ptr)
         if ret != 1:
@@ -148,6 +163,13 @@ class Mixer(_Base):
     Takes the same keyword arguments as `sounddevice.OutputStream`,
     except *callback* (a callback function implemented in C is used
     internally) and *dtype* (which is always ``'float32'``).
+
+    The additional keyword argument *qsize* (default: 16) sets the size
+    of the queues used to communicate with the callback, which is also
+    the maximum number of pending actions, i.e. actions that have been
+    started (or scheduled) but haven't finished yet.  If an action is
+    started while *qsize* actions are pending, a `RuntimeError` is
+    raised.  It must be a power of 2.
 
     Uses default values from `sounddevice.default` (except *dtype*,
     which is always ``'float32'``).
@@ -217,6 +239,8 @@ class Recorder(_Base):
     except *callback* (a callback function implemented in C is used
     internally) and *dtype* (which is always ``'float32'``).
 
+    The additional keyword argument *qsize* is described in `Mixer`.
+
     Uses default values from `sounddevice.default` (except *dtype*,
     which is always ``'float32'``).
 
@@ -281,6 +305,8 @@ class MixerAndRecorder(Mixer, Recorder):
     Takes the same keyword arguments as `sounddevice.Stream`, except
     *callback* (a callback function implemented in C is used internally)
     and *dtype* (which is always ``'float32'``).
+
+    The additional keyword argument *qsize* is described in `Mixer`.
 
     Uses default values from `sounddevice.default` (except *dtype*,
     which is always ``'float32'``).
