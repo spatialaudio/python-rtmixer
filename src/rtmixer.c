@@ -20,17 +20,27 @@ static const struct stats EMPTY_STATS;
   }} while (false)
 #endif
 
-void remove_action(struct action** addr, const struct state* state)
+// The action is moved to the list of done actions, see flush_done_actions()
+void remove_action(struct action** addr, struct state* state)
 {
   struct action* action = *addr;
   *addr = action->next;  // Current action is removed from list
-  action->next = NULL;
-  ring_buffer_size_t written = PaUtil_WriteRingBuffer(state->result_q
-    , &action, 1);
-  if (written != 1)
+  action->next = state->done_actions;
+  state->done_actions = action;
+}
+
+// Done actions that don't fit into result_q are kept for the next block
+void flush_done_actions(struct state* state)
+{
+  while (state->done_actions)
   {
-    // TODO: Stop callback! Unrecoverable error! Log error (in "state")?
-    printf("result queue is full\n");
+    struct action* action = state->done_actions;
+    if (PaUtil_WriteRingBuffer(state->result_q, &action, 1) != 1)
+    {
+      break;  // result_q is full, try again in the next block
+    }
+    state->done_actions = action->next;
+    action->next = NULL;
   }
 }
 
@@ -128,7 +138,10 @@ int callback(const void* input, void* output, frame_t frameCount
   struct state* state = userData;
   CALLBACK_ASSERT(state);
 
-  memset(output, 0, sizeof(float) * state->output_channels * frameCount);
+  if (output)  // NULL for input-only streams
+  {
+    memset(output, 0, sizeof(float) * state->output_channels * frameCount);
+  }
 
   get_stats(frameCount, statusFlags, &(state->stats));
 
@@ -420,5 +433,6 @@ int callback(const void* input, void* output, frame_t frameCount
     }
     actionaddr = &(action->next);
   }
+  flush_done_actions(state);
   return paContinue;
 }
