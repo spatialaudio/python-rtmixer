@@ -136,15 +136,11 @@ class _Base(_sd._StreamBase):
 
     def _enqueue(self, action, keep_alive=None):
         self._drain_result_q()
-        # Each action ends up in the result queue exactly once, so limiting
-        # the number of pending actions guarantees that it never overflows:
-        if len(self._actions) >= len(self._result_q):
-            raise RuntimeError(
-                'Too many pending actions, consider increasing qsize')
         self._temp_action_ptr[0] = action
         ret = self._action_q.write(self._temp_action_ptr)
         if ret != 1:
-            raise RuntimeError('Action queue is full')
+            raise RuntimeError(
+                'Action queue is full, consider increasing qsize')
         assert action not in self._actions
         self._actions[action] = keep_alive
 
@@ -165,11 +161,13 @@ class Mixer(_Base):
     internally) and *dtype* (which is always ``'float32'``).
 
     The additional keyword argument *qsize* (default: 16) sets the size
-    of the queues used to communicate with the callback, which is also
-    the maximum number of pending actions, i.e. actions that have been
-    started (or scheduled) but haven't finished yet.  If an action is
-    started while *qsize* actions are pending, a `RuntimeError` is
-    raised.  It must be a power of 2.
+    of the queues used to communicate with the callback.  It must be a
+    power of 2.  The callback takes new actions from its queue once per
+    audio block, so *qsize* limits how many actions can be started
+    within one block (if exceeded, a `RuntimeError` is raised), but not
+    how many actions can be active at the same time.  If many actions
+    finish at once, some of them may be removed from `actions` a few
+    blocks later.
 
     Uses default values from `sounddevice.default` (except *dtype*,
     which is always ``'float32'``).
