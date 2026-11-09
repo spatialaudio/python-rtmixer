@@ -147,10 +147,16 @@ class _Base(_sd._StreamBase):
     def _drain_result_q(self):
         """Get actions from the result queue and discard them."""
         while self._result_q.readinto(self._temp_action_ptr):
-            try:
-                del self._actions[self._temp_action_ptr[0]]
-            except KeyError:
-                assert False
+            # Each item is a linked list of actions
+            action = self._temp_action_ptr[0]
+            while action != _ffi.NULL:
+                # Get next pointer before the action is (potentially) freed:
+                next_action = action.next
+                try:
+                    del self._actions[action]
+                except KeyError:
+                    assert False
+                action = next_action
 
 
 class Mixer(_Base):
@@ -165,9 +171,7 @@ class Mixer(_Base):
     power of 2.  The callback takes new actions from its queue once per
     audio block, so *qsize* limits how many actions can be started
     within one block (if exceeded, a `RuntimeError` is raised), but not
-    how many actions can be active at the same time.  If many actions
-    finish at once, some of them may be removed from `actions` a few
-    blocks later.
+    how many actions can be active at the same time.
 
     Uses default values from `sounddevice.default` (except *dtype*,
     which is always ``'float32'``).

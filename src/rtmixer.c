@@ -20,27 +20,34 @@ static const struct stats EMPTY_STATS;
   }} while (false)
 #endif
 
-// The action is moved to the list of done actions, see flush_done_actions()
+// The action is appended to the list of done actions,
+// see flush_done_actions()
 void remove_action(struct action** addr, struct state* state)
 {
   struct action* action = *addr;
   *addr = action->next;  // Current action is removed from list
-  action->next = state->done_actions;
-  state->done_actions = action;
+  action->next = NULL;
+  if (state->last_done_action)
+  {
+    state->last_done_action->next = action;
+  }
+  else
+  {
+    state->done_actions = action;
+  }
+  state->last_done_action = action;
 }
 
-// Done actions that don't fit into result_q are kept for the next block
+// All done actions are sent as a single linked list (in the order they
+// finished).  If result_q is full, they are kept until the next block.
 void flush_done_actions(struct state* state)
 {
-  while (state->done_actions)
+  if (state->done_actions
+      && PaUtil_WriteRingBuffer(state->result_q, &(state->done_actions), 1))
   {
-    struct action* action = state->done_actions;
-    if (PaUtil_WriteRingBuffer(state->result_q, &action, 1) != 1)
-    {
-      break;  // result_q is full, try again in the next block
-    }
-    state->done_actions = action->next;
-    action->next = NULL;
+    // The actions now belong to the Python side, don't touch them anymore!
+    state->done_actions = NULL;
+    state->last_done_action = NULL;
   }
 }
 
