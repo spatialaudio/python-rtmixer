@@ -129,8 +129,9 @@ Each command (`play_buffer`, `cancel`, `fetch_and_reset_stats`, ...) allocates a
 PortAudio ring buffer. Once per audio block the callback reads new actions into a singly linked
 list (`CANCEL` actions go to the front, everything else to the back), processes each one against
 the block's timing info (`requested_time`, `allow_belated` encoded via `actual_time`), and moves
-finished actions to `done_actions`, which are flushed into `result_q` as space allows. Python
-drains `result_q` in `_drain_result_q()` (called from `_enqueue()` and the `actions` property)
+finished actions to `done_actions`, which is sent to `result_q` as one linked list per block
+(and kept for the next block if `result_q` is full). Python drains `result_q` in
+`_drain_result_q()` (called from `_enqueue()` and the `actions` property), walks each list,
 and drops its references.
 
 ### Memory ownership

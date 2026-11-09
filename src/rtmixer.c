@@ -43,7 +43,7 @@ void remove_action(struct action** addr, struct state* state)
 void flush_done_actions(struct state* state)
 {
   if (state->done_actions
-      && PaUtil_WriteRingBuffer(state->result_q, &(state->done_actions), 1))
+   && PaUtil_WriteRingBuffer(state->result_q, &(state->done_actions), 1))
   {
     // The actions now belong to the Python side, don't touch them anymore!
     state->done_actions = NULL;

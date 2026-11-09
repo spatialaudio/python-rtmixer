@@ -1,3 +1,10 @@
+Version 0.1.8 -- unreleased
+ * Fix lost results and a hanging ``wait()`` when many actions finish
+   in the same audio block
+ * Fix possible crashes when a stream is garbage-collected while it is
+   running, or when an action is garbage-collected after being cancelled
+ * Update PortAudio submodule to the current development version
+
 Version 0.1.7 -- 2024-07-02 -- PyPI__ -- diff__
  * Restore the ``x86_64`` Linux wheels that were missing from 0.1.6
 
