@@ -21,19 +21,22 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest, macos-15-intel]
         arch: [native]
-        python: ["{cp310,pp311}"]
+        python: ["{cp310,cp314t,cp315t,pp311}"]
         # Split aarch64 across jobs because it uses emulation (slow)
         include:
           # DNS fails inside i686 containers on ubuntu-26.04 runners
           - os: ubuntu-24.04
             arch: i686
-            python: "{cp310,pp311}"
+            python: "{cp310,cp314t,cp315t,pp311}"
           - os: ubuntu-latest
             arch: aarch64
             python: "cp310"
           - os: ubuntu-latest
             arch: aarch64
             python: "pp311"
+          - os: ubuntu-latest
+            arch: aarch64
+            python: "{cp314t,cp315t}"
     steps:
       - uses: actions/checkout@v7
         with:

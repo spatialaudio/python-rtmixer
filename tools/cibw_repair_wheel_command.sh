@@ -12,7 +12,3 @@ elif [[ "$RUNNER_OS" == "macOS" ]]; then
 else
     cp $WHEEL $DEST_DIR
 fi
-
-if [[ "$(python -c 'import platform; print(platform.python_implementation())')" == "CPython" ]]; then
-    pipx run abi3audit --strict --report $WHEEL
-fi

@@ -4,6 +4,12 @@ Version 0.1.8 -- unreleased
  * Fix possible crashes when a stream is garbage-collected while it is
    running, or when an action is garbage-collected after being cancelled
  * Update PortAudio submodule to the current development version
+ * Add wheels for free-threaded CPython 3.14t, and limited API wheels
+   (``abi3.abi3t``) for CPython 3.15 and 3.15t and newer
+ * Fix building from source on free-threaded CPython, which produced a
+   wheel wrongly tagged ``abi3`` that could not be installed
+ * Fix possible crashes when actions are started or waited for from
+   several threads at the same time
 
 Version 0.1.7 -- 2024-07-02 -- PyPI__ -- diff__
  * Restore the ``x86_64`` Linux wheels that were missing from 0.1.6

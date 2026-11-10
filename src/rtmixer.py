@@ -5,6 +5,8 @@ https://python-rtmixer.readthedocs.io/
 """
 __version__ = '0.1.7'
 
+import threading as _threading
+
 import sounddevice as _sd
 from pa_ringbuffer import init as _init_ringbuffer
 from _rtmixer import ffi as _ffi, lib as _lib
@@ -40,6 +42,8 @@ class _Base(_sd._StreamBase):
 
         self._actions = {}
         self._temp_action_ptr = _ffi.new('struct action**')
+        # The queues allow only one reader and one writer at a time:
+        self._lock = _threading.Lock()
 
     def __del__(self):
         # The C callback uses memory owned by this object, so the stream
@@ -53,8 +57,9 @@ class _Base(_sd._StreamBase):
     @property
     def actions(self):
         """The set of active "actions"."""
-        self._drain_result_q()
-        return self._actions.keys()
+        with self._lock:
+            self._drain_result_q()
+            return set(self._actions)
 
     @property
     def stats(self):
@@ -135,17 +140,22 @@ class _Base(_sd._StreamBase):
         return channels, mapping
 
     def _enqueue(self, action, keep_alive=None):
-        self._drain_result_q()
-        self._temp_action_ptr[0] = action
-        ret = self._action_q.write(self._temp_action_ptr)
-        if ret != 1:
-            raise RuntimeError(
-                'Action queue is full, consider increasing qsize')
-        assert action not in self._actions
-        self._actions[action] = keep_alive
+        with self._lock:
+            self._drain_result_q()
+            self._temp_action_ptr[0] = action
+            ret = self._action_q.write(self._temp_action_ptr)
+            if ret != 1:
+                raise RuntimeError(
+                    'Action queue is full, consider increasing qsize')
+            assert action not in self._actions
+            self._actions[action] = keep_alive
 
     def _drain_result_q(self):
-        """Get actions from the result queue and discard them."""
+        """Get actions from the result queue and discard them.
+
+        Must be called with ``self._lock`` held.
+
+        """
         while self._result_q.readinto(self._temp_action_ptr):
             # Each item is a linked list of actions
             action = self._temp_action_ptr[0]
