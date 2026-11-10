@@ -56,7 +56,6 @@ struct state
   struct PaUtilRingBuffer* const result_q;  // Q for results and cmd disposal
   struct action* actions;  // Singly linked list of actions
   struct action* done_actions;  // Finished, but not yet in result_q
-  struct action* last_done_action;  // To append to done_actions
   struct stats stats;
   // TODO: result_q usage?
 };
