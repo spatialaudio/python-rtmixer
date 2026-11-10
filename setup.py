@@ -1,5 +1,7 @@
-from setuptools import setup, Extension
-from wheel.bdist_wheel import bdist_wheel
+import sys
+import sysconfig
+
+from setuptools import setup
 
 __version__ = 'unknown'
 
@@ -12,16 +14,15 @@ for line in open('src/rtmixer.py'):
 
 # Adapted from
 # https://github.com/joerick/python-abi3-package-sample/blob/main/setup.py
-class bdist_wheel_abi3(bdist_wheel):
-    def get_tag(self):
-        python, abi, plat = super().get_tag()
-
-        if python.startswith("cp"):
-            # on CPython, our wheels are abi3 and compatible back to 3.2,
-            # but let's set it to our min version anyway
-            return "cp310", "abi3", plat
-
-        return python, abi, plat
+# On CPython our wheels are abi3. Free-threaded builds support the limited API
+# (as abi3t, PEP 803) only from 3.15 on, so 3.14t gets a version-specific
+# wheel.
+options = {}
+if sys.implementation.name == 'cpython':
+    if not sysconfig.get_config_var('Py_GIL_DISABLED'):
+        options['bdist_wheel'] = {'py_limited_api': 'cp310'}
+    elif sys.version_info >= (3, 15):
+        options['bdist_wheel'] = {'py_limited_api': 'cp315'}
 
 
 setup(
@@ -29,5 +30,5 @@ setup(
     package_dir={'': 'src'},
     py_modules=['rtmixer'],
     cffi_modules=['rtmixer_build.py:ffibuilder'],  # sets Py_LIMITED_API for us
-    cmdclass={"bdist_wheel": bdist_wheel_abi3},
+    options=options,
 )

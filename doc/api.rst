@@ -36,6 +36,13 @@ Common parameters that are shared by most commands:
 
 All commands return a corresponding "action", which can be compared against the
 active `actions`, and can be used  as input for `cancel()` and `wait()`.
+The commands, `actions` and `wait()` can be used from several threads at
+once.  The methods inherited from `sounddevice.Stream` (e.g.
+:meth:`~sounddevice.Stream.start` and :meth:`~sounddevice.Stream.close`)
+cannot, so they must be called from one thread or synchronized by the user,
+as required by PortAudio.  Likewise, a `RingBuffer` that is used for playback
+(or recording) must only be written to (or read from) by one thread at a time.
+
 The fields of action objects are defined in C but can be accessed with
 Python (e.g. ``my_action.stats.min_blocksize``)
 *after* the command is finished:
