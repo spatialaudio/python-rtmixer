@@ -20,17 +20,31 @@ static const struct stats EMPTY_STATS;
   }} while (false)
 #endif
 
-void remove_action(struct action** addr, const struct state* state)
+// Appends the action to the list of done actions (see flush_done_actions())
+// and returns the address where the next done action will be appended
+struct action** remove_action(struct action** addr
+  , struct action** done_addr)
 {
   struct action* action = *addr;
   *addr = action->next;  // Current action is removed from list
   action->next = NULL;
-  ring_buffer_size_t written = PaUtil_WriteRingBuffer(state->result_q
-    , &action, 1);
-  if (written != 1)
+  while (*done_addr)
   {
-    // TODO: Stop callback! Unrecoverable error! Log error (in "state")?
-    printf("result queue is full\n");
+    done_addr = &((*done_addr)->next);
+  }
+  *done_addr = action;
+  return &(action->next);
+}
+
+// All done actions are sent as a single linked list (in the order they
+// finished).  If result_q is full, they are kept until the next block.
+void flush_done_actions(struct state* state)
+{
+  if (state->done_actions
+   && PaUtil_WriteRingBuffer(state->result_q, &(state->done_actions), 1))
+  {
+    // The actions now belong to the Python side, don't touch them anymore!
+    state->done_actions = NULL;
   }
 }
 
@@ -128,7 +142,10 @@ int callback(const void* input, void* output, frame_t frameCount
   struct state* state = userData;
   CALLBACK_ASSERT(state);
 
-  memset(output, 0, sizeof(float) * state->output_channels * frameCount);
+  if (output)  // NULL for input-only streams
+  {
+    memset(output, 0, sizeof(float) * state->output_channels * frameCount);
+  }
 
   get_stats(frameCount, statusFlags, &(state->stats));
 
@@ -138,6 +155,8 @@ int callback(const void* input, void* output, frame_t frameCount
   // TODO: use worst case from before/after the "while" loop?
 
   struct action** actionaddr = &(state->actions);
+  // Done actions from previous blocks are skipped in remove_action()
+  struct action** done_addr = &(state->done_actions);
   while (*actionaddr)
   {
     struct action* const action = *actionaddr;
@@ -174,7 +193,7 @@ int callback(const void* input, void* output, frame_t frameCount
         if (action->actual_time == 0.0)
         {
           // allow_belated == False
-          remove_action(actionaddr, state);
+          done_addr = remove_action(actionaddr, done_addr);
           continue;
         }
         action->actual_time = time;
@@ -208,7 +227,7 @@ int callback(const void* input, void* output, frame_t frameCount
 
                 // TODO: save some more status information?
                 delinquent->total_frames = 0;
-                remove_action(i, state);
+                done_addr = remove_action(i, done_addr);
                 break;
               }
             }
@@ -253,7 +272,8 @@ int callback(const void* input, void* output, frame_t frameCount
       }
       // TODO: what if the action to cancel wasn't found?
 
-      remove_action(actionaddr, state);  // Remove the CANCEL action itself
+      // Remove the CANCEL action itself
+      done_addr = remove_action(actionaddr, done_addr);
       continue;
     }
 
@@ -263,7 +283,7 @@ int callback(const void* input, void* output, frame_t frameCount
     {
       action->stats = state->stats;
       state->stats = EMPTY_STATS;
-      remove_action(actionaddr, state);
+      done_addr = remove_action(actionaddr, done_addr);
       continue;
     }
 
@@ -406,7 +426,7 @@ int callback(const void* input, void* output, frame_t frameCount
       if (totalsize < (ring_buffer_size_t)frames)
       {
         // Ring buffer is empty or full
-        remove_action(actionaddr, state);
+        done_addr = remove_action(actionaddr, done_addr);
         continue;
       }
     }
@@ -415,10 +435,11 @@ int callback(const void* input, void* output, frame_t frameCount
 
     if (action->done_frames == action->total_frames)
     {
-      remove_action(actionaddr, state);
+      done_addr = remove_action(actionaddr, done_addr);
       continue;
     }
     actionaddr = &(action->next);
   }
+  flush_done_actions(state);
   return paContinue;
 }

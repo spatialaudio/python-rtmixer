@@ -41,6 +41,15 @@ class _Base(_sd._StreamBase):
         self._actions = {}
         self._temp_action_ptr = _ffi.new('struct action**')
 
+    def __del__(self):
+        # The C callback uses memory owned by this object, so the stream
+        # must be closed before that memory is freed.
+        try:
+            self.abort()
+            self.close()
+        except Exception:
+            pass  # e.g. __init__() failed or interpreter shutdown
+
     @property
     def actions(self):
         """The set of active "actions"."""
@@ -76,7 +85,8 @@ class _Base(_sd._StreamBase):
             requested_time=time,
             action=action,
         ))
-        self._enqueue(cancel_action)
+        # The callback dereferences *action*, so it must be kept alive:
+        self._enqueue(cancel_action, keep_alive=action)
         return cancel_action
 
     def fetch_and_reset_stats(self, time=0, allow_belated=True):
@@ -129,17 +139,24 @@ class _Base(_sd._StreamBase):
         self._temp_action_ptr[0] = action
         ret = self._action_q.write(self._temp_action_ptr)
         if ret != 1:
-            raise RuntimeError('Action queue is full')
+            raise RuntimeError(
+                'Action queue is full, consider increasing qsize')
         assert action not in self._actions
         self._actions[action] = keep_alive
 
     def _drain_result_q(self):
         """Get actions from the result queue and discard them."""
         while self._result_q.readinto(self._temp_action_ptr):
-            try:
-                del self._actions[self._temp_action_ptr[0]]
-            except KeyError:
-                assert False
+            # Each item is a linked list of actions
+            action = self._temp_action_ptr[0]
+            while action != _ffi.NULL:
+                # Get next pointer before the action is (potentially) freed:
+                next_action = action.next
+                try:
+                    del self._actions[action]
+                except KeyError:
+                    assert False
+                action = next_action
 
 
 class Mixer(_Base):
@@ -148,6 +165,13 @@ class Mixer(_Base):
     Takes the same keyword arguments as `sounddevice.OutputStream`,
     except *callback* (a callback function implemented in C is used
     internally) and *dtype* (which is always ``'float32'``).
+
+    The additional keyword argument *qsize* (default: 16) sets the size
+    of the queues used to communicate with the callback.  It must be a
+    power of 2.  The callback takes new actions from its queue once per
+    audio block, so *qsize* limits how many actions can be started
+    within one block (if exceeded, a `RuntimeError` is raised), but not
+    how many actions can be active at the same time.
 
     Uses default values from `sounddevice.default` (except *dtype*,
     which is always ``'float32'``).
@@ -217,6 +241,8 @@ class Recorder(_Base):
     except *callback* (a callback function implemented in C is used
     internally) and *dtype* (which is always ``'float32'``).
 
+    The additional keyword argument *qsize* is described in `Mixer`.
+
     Uses default values from `sounddevice.default` (except *dtype*,
     which is always ``'float32'``).
 
@@ -281,6 +307,8 @@ class MixerAndRecorder(Mixer, Recorder):
     Takes the same keyword arguments as `sounddevice.Stream`, except
     *callback* (a callback function implemented in C is used internally)
     and *dtype* (which is always ``'float32'``).
+
+    The additional keyword argument *qsize* is described in `Mixer`.
 
     Uses default values from `sounddevice.default` (except *dtype*,
     which is always ``'float32'``).
